@@ -3,7 +3,7 @@
 // Run the backend server first: node server.js
 // Your IP shows in the terminal when the server starts
 
-export const API_BASE_URL = 'http://192.168.236.171:3000/api';
+export const API_BASE_URL = 'https://stantonychurch-1.onrender.com/api';
 
 export const ENDPOINTS = {
   // Auth

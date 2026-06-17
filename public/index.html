@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>St Antony Church — Find Peace in Faith</title>
+    <meta name="description" content="St Antony Church Devotional App — Watch sermons, listen to devotionals, explore Bible verses, and stay connected with your church community.">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!--             PAGE: WELCOME                   -->
+    <!-- ═══════════════════════════════════════════ -->
+    <div id="page-welcome" class="page active welcome-page-custom">
+        <div class="image-header-section welcome-header">
+            <div class="image-header-overlay"></div>
+            <div class="welcome-cross-top"></div>
+            <div class="wave-divider">
+                <svg viewBox="0 0 1440 160" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+                    <path fill="#ffffff" d="M0,96C120,96,240,128,360,133.3C480,139,600,117,720,96C840,75,960,53,1080,58.7C1200,64,1320,96,1380,112L1440,128L1440,160L1380,160C1320,160,1200,160,1080,160C960,160,840,160,720,160C600,160,480,160,360,160C240,160,120,160,0,160Z"></path>
+                </svg>
+            </div>
+        </div>
+        <div class="white-content-section">
+            <div class="welcome-badge">St Antony Church</div>
+            <h1 class="welcome-title-new">Welcome</h1>
+            <p class="welcome-subtitle-new">
+                Experience God's love and grace. Join us in worship, community support,
+                and service as we walk this spiritual journey together.
+            </p>
+            <div class="welcome-stats-new">
+                <div class="stat-new"><span>✝</span> Daily Devotionals</div>
+                <div class="stat-new"><span>🎵</span> Sermon Audio</div>
+                <div class="stat-new"><span>📅</span> Church Events</div>
+            </div>
+            
+            <div class="welcome-action-row" id="welcome-continue-trigger">
+                <span class="continue-text">Continue</span>
+                <button id="btn-get-started" class="btn-continue-arrow">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </button>
+            </div>
+        </div>
+        <div class="welcome-bottom-bar-new">
+            <span class="ticker-label">📖 Today's Verse:</span>
+            <span class="verse-ticker" id="verse-ticker">Loading...</span>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!--          PAGE: LOGIN SELECTION              -->
+    <!-- ═══════════════════════════════════════════ -->
+    <div id="page-login-select" class="page auth-page-custom">
+        <div class="image-header-section auth-header-section">
+            <div class="image-header-overlay"></div>
+            <button class="btn-back-new" id="btn-back-from-select">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                Back
+            </button>
+            <div class="welcome-cross-top"></div>
+            <div class="wave-divider">
+                <svg viewBox="0 0 1440 160" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+                    <path fill="#ffffff" d="M0,96C120,96,240,128,360,133.3C480,139,600,117,720,96C840,75,960,53,1080,58.7C1200,64,1320,96,1380,112L1440,128L1440,160L1380,160C1320,160,1200,160,1080,160C960,160,840,160,720,160C600,160,480,160,360,160C240,160,120,160,0,160Z"></path>
+                </svg>
+            </div>
+        </div>
+        <div class="white-content-section form-content-section">
+            <div class="auth-header-new">
+                <h2>Choose Portal</h2>
+                <p>Select your role to login</p>
+            </div>
+            
+            <div class="login-select-grid-new">
+                <button class="login-select-card-new" id="btn-select-member">
+                    <div class="login-card-icon-new">🙏</div>
+                    <div class="login-card-text-new">
+                        <h3>Church Member</h3>
+                    </div>
+                    <div class="login-card-arrow-new">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    </div>
+                </button>
+                
+                <button class="login-select-card-new admin-card-new" id="btn-select-admin">
+                    <div class="login-card-icon-new">⚙️</div>
+                    <div class="login-card-text-new">
+                        <h3>Church Admin</h3>
+                    </div>
+                    <div class="login-card-arrow-new">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!--          PAGE: MEMBER LOGIN/REGISTER        -->
+    <!-- ═══════════════════════════════════════════ -->
+    <div id="page-member-login" class="page auth-page-custom">
+        <div class="image-header-section auth-header-section">
+            <div class="image-header-overlay"></div>
+            <button class="btn-back-new" id="btn-back-from-member">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                Back
+            </button>
+            <div class="welcome-cross-top"></div>
+            <div class="wave-divider">
+                <svg viewBox="0 0 1440 160" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+                    <path fill="#ffffff" d="M0,96C120,96,240,128,360,133.3C480,139,600,117,720,96C840,75,960,53,1080,58.7C1200,64,1320,96,1380,112L1440,128L1440,160L1380,160C1320,160,1200,160,1080,160C960,160,840,160,720,160C600,160,480,160,360,160C240,160,120,160,0,160Z"></path>
+                </svg>
+            </div>
+        </div>
+        <div class="white-content-section form-content-section">
+            <div class="auth-header-new">
+                <h2 id="member-form-title-new">Sign in</h2>
+                <p id="member-form-subtitle">Login to your account</p>
+            </div>
+
+            <!-- Tab Switcher -->
+            <div class="form-tabs">
+                <button class="form-tab active" id="tab-login" data-tab="login">Login</button>
+                <button class="form-tab" id="tab-register" data-tab="register">Register</button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="member-login-form" class="auth-form-new">
+                <div class="form-group-new">
+                    <label for="login-name">Full Name</label>
+                    <div class="input-wrapper-new">
+                        <span class="input-icon-new">👤</span>
+                        <input type="text" id="login-name" placeholder="Enter your full name" required autocomplete="name">
+                    </div>
+                </div>
+                <div class="form-group-new">
+                    <label for="login-phone">Phone Number</label>
+                    <div class="input-wrapper-new">
+                        <span class="input-icon-new">📱</span>
+                        <input type="tel" id="login-phone" placeholder="Enter your phone number" required autocomplete="tel">
+                    </div>
+                </div>
+                <div class="form-group-new">
+                    <label for="login-password">Password</label>
+                    <div class="input-wrapper-new">
+                        <span class="input-icon-new">🔒</span>
+                        <input type="password" id="login-password" placeholder="Enter your password" required autocomplete="current-password">
+                        <button type="button" class="toggle-pw" data-target="login-password">👁</button>
+                    </div>
+                </div>
+                
+                <div class="form-options-new">
+                    <label class="checkbox-container-new">
+                        <input type="checkbox" checked>
+                        <span class="checkmark-new"></span>
+                        Remember Me
+                    </label>
+                    <a href="#" class="forgot-pw-link-new">Forgot Password?</a>
+                </div>
+
+                <div id="member-login-error" class="form-error"></div>
+                
+                <button type="submit" class="btn-auth-submit-new" id="btn-member-login">
+                    <span>Login</span>
+                    <div class="btn-spinner hidden"></div>
+                </button>
+                <p class="form-switch-new">Don't have an account? <a href="#" id="switch-to-register">Register here</a></p>
+            </form>
+
+            <!-- Register Form -->
+            <form id="member-register-form" class="auth-form-new hidden">
+                <div class="form-group-new">
+                    <label for="reg-name">Full Name</label>
+                    <div class="input-wrapper-new">
+                        <span class="input-icon-new">👤</span>
+                        <input type="text" id="reg-name" placeholder="Enter your full name" required autocomplete="name">
+                    </div>
+                </div>
+                <div class="form-group-new">
+                    <label for="reg-phone">Phone Number</label>
+                    <div class="input-wrapper-new">
+                        <span class="input-icon-new">📱</span>
+                        <input type="tel" id="reg-phone" placeholder="Enter your phone number" required autocomplete="tel">
+                    </div>
+                </div>
+                <div class="form-group-new">
+                    <label for="reg-password">Password</label>
+                    <div class="input-wrapper-new">
+                        <span class="input-icon-new">🔒</span>
+                        <input type="password" id="reg-password" placeholder="Create a password (min 6 chars)" required autocomplete="new-password">
+                        <button type="button" class="toggle-pw" data-target="reg-password">👁</button>
+                    </div>
+                </div>
+                <div id="member-register-error" class="form-error"></div>
+                
+                <button type="submit" class="btn-auth-submit-new" id="btn-member-register">
+                    <span>Create Account</span>
+                    <div class="btn-spinner hidden"></div>
+                </button>
+                <p class="form-switch-new">Already have an account? <a href="#" id="switch-to-login">Login here</a></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!--           PAGE: ADMIN LOGIN                 -->
+    <!-- ═══════════════════════════════════════════ -->
+    <div id="page-admin-login" class="page auth-page-custom">
+        <div class="image-header-section auth-header-section">
+            <div class="image-header-overlay"></div>
+            <button class="btn-back-new" id="btn-back-from-admin">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                Back
+            </button>
+            <div class="welcome-cross-top">✝</div>
+            <div class="wave-divider">
+                <svg viewBox="0 0 1440 160" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+                    <path fill="#ffffff" d="M0,96C120,96,240,128,360,133.3C480,139,600,117,720,96C840,75,960,53,1080,58.7C1200,64,1320,96,1380,112L1440,128L1440,160L1380,160C1320,160,1200,160,1080,160C960,160,840,160,720,160C600,160,480,160,360,160C240,160,120,160,0,160Z"></path>
+                </svg>
+            </div>
+        </div>
+        <div class="white-content-section form-content-section">
+            <div class="auth-header-new">
+                <h2>Admin Login</h2>
+                <p>Manage your church's content</p>
+            </div>
+            
+            <form id="admin-login-form" class="auth-form-new">
+                <div class="form-group-new">
+                    <label for="admin-name">Admin Name</label>
+                    <div class="input-wrapper-new">
+                        <span class="input-icon-new">👤</span>
+                        <input type="text" id="admin-name" placeholder="Enter admin name" required autocomplete="username">
+                    </div>
+                </div>
+                <div class="form-group-new">
+                    <label for="admin-password">Password</label>
+                    <div class="input-wrapper-new">
+                        <span class="input-icon-new">🔒</span>
+                        <input type="password" id="admin-password" placeholder="Enter admin password" required autocomplete="current-password">
+                        <button type="button" class="toggle-pw" data-target="admin-password">👁</button>
+                    </div>
+                </div>
+                <div id="admin-login-error" class="form-error"></div>
+                
+                <button type="submit" class="btn-auth-submit-new admin-btn-new" id="btn-admin-login">
+                    <span>Login as Admin</span>
+                    <div class="btn-spinner hidden"></div>
+                </button>
+                <p class="admin-hint-new">Default: name = <code>admin</code> | password = <code>admin123</code></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!--          PAGE: MEMBER PORTAL                -->
+    <!-- ═══════════════════════════════════════════ -->
+    <div id="page-member-portal" class="page portal-page">
+        <div class="member-layout">
+            <!-- Sidebar -->
+            <aside class="member-sidebar" id="member-sidebar">
+                <div class="sidebar-brand">
+                    <span class="nav-cross">✝</span>
+                    <span class="nav-title" id="member-brand-name">St Antony Church</span>
+                </div>
+                <nav class="member-sidebar-nav">
+                    <div class="nav-group-label">Main</div>
+                    <a href="#" class="member-nav-link active" data-section="home">🏠 Home</a>
+                    <a href="#" class="member-nav-link" data-section="announce">📢 Announcements</a>
+                    <div class="nav-group-label">📖 Spiritual Growth</div>
+                    <a href="#" class="member-nav-link" data-section="devotional">✝️ Devotionals</a>
+                    <a href="#" class="member-nav-link" data-section="verse-day">📜 Verse of the Day</a>
+                    <a href="#" class="member-nav-link" data-section="reading-plans">📚 Bible Reading Plans</a>
+                    <a href="#" class="member-nav-link" data-section="bible">📖 Bible Verses</a>
+                    <a href="#" class="member-nav-link" data-section="quiz">🧠 Bible Quiz</a>
+                    <a href="#" class="member-nav-link" data-section="articles">📰 Articles</a>
+                    <a href="#" class="member-nav-link" data-section="podcasts">🎙️ Podcasts</a>
+                    <a href="#" class="member-nav-link" data-section="journal">📓 Faith Journal</a>
+                    <a href="#" class="member-nav-link" data-section="testimonies">💬 Testimonies</a>
+                    <a href="#" class="member-nav-link" data-section="memorization">🧠 Memorization</a>
+                    <a href="#" class="member-nav-link" data-section="courses">🎓 Bible Courses</a>
+                    <div class="nav-group-label">🙏 Prayer</div>
+                    <a href="#" class="member-nav-link" data-section="prayer">🙏 Prayer Requests</a>
+                    <a href="#" class="member-nav-link" data-section="prayer-groups">👥 Prayer Groups</a>
+                    <a href="#" class="member-nav-link" data-section="prayer-reminders">⏰ Reminders</a>
+                    <a href="#" class="member-nav-link" data-section="fasting">🍞 Fasting Tracker</a>
+                    <a href="#" class="member-nav-link" data-section="prayer-calendar">📅 Prayer Calendar</a>
+                    <div class="nav-group-label">🎵 Worship</div>
+                    <a href="#" class="member-nav-link" data-section="worship">🎤 Song Lyrics</a>
+                    <a href="#" class="member-nav-link" data-section="playlists">🎵 Playlists</a>
+                    <a href="#" class="member-nav-link" data-section="choir">🎼 Choir Materials</a>
+                    <a href="#" class="member-nav-link" data-section="song-requests">🎶 Song Requests</a>
+                    <div class="nav-group-label">⛪ Church Services</div>
+                    <a href="#" class="member-nav-link" data-section="videos">🎬 Sermon Videos</a>
+                    <a href="#" class="member-nav-link" data-section="audio">🎵 Sermon Audio</a>
+                    <a href="#" class="member-nav-link" data-section="services">🕰️ Service Schedule</a>
+                    <a href="#" class="member-nav-link" data-section="events">📅 Events</a>
+                    <a href="#" class="member-nav-link" data-section="event-galleries" data-i18n="Event Galleries">🖼️ Event Galleries</a>
+                    <a href="#" class="member-nav-link" data-section="sermon-notes">📝 Sermon Notes</a>
+                    <a href="#" class="member-nav-link" data-section="bulletins">📋 Church Bulletin</a>
+                    <div class="nav-group-label">👨‍👩‍👧 Family</div>
+                    <a href="#" class="member-nav-link" data-section="family-connections">👨‍👩‍👧 Family Groups</a>
+                    <a href="#" class="member-nav-link" data-section="family-prayer">🙏 Family Prayer</a>
+                    <a href="#" class="member-nav-link" data-section="family-devotional">👨‍👩‍👧 Family Devotionals</a>
+                    <a href="#" class="member-nav-link" data-section="children">📚 Children's Stories</a>
+                    <a href="#" class="member-nav-link" data-section="youth">🧒 Youth Corner</a>
+                    <a href="#" class="member-nav-link" data-section="parenting">👶 Parenting</a>
+                    <div class="nav-group-label">🤝 Community</div>
+                    <a href="#" class="member-nav-link" data-section="directory">👥 Member Directory</a>
+                    <a href="#" class="member-nav-link" data-section="ministry">⛪ Ministry Groups</a>
+                    <a href="#" class="member-nav-link" data-section="volunteers">🤲 Volunteer</a>
+                    <a href="#" class="member-nav-link" data-section="birthdays">🎂 Birthdays</a>
+                    <a href="#" class="member-nav-link" data-section="chats">💬 Group Chats</a>
+                    <div class="nav-group-label">📢 & Tools</div>
+                    <a href="#" class="member-nav-link" data-section="newsletters">📧 Newsletter</a>
+                    <a href="#" class="member-nav-link" data-section="notifications">🔔 Notifications</a>
+                    <a href="#" class="member-nav-link" data-section="challenges">🏆 Daily Challenges</a>
+                    <a href="#" class="member-nav-link" data-section="ai-chat">🤖 AI Bible Chat</a>
+                    <a href="#" class="member-nav-link" data-section="history">📜 History</a>
+                </nav>
+                <div class="sidebar-footer member-sidebar-footer">
+                    <button class="toolbar-btn" id="theme-toggle" title="Toggle theme">🌙</button>
+                    <button class="toolbar-btn" id="lang-toggle" title="English / Tamil">EN/TA</button>
+                    <button class="toolbar-btn" id="offline-cache-btn" title="Save for offline">📥</button>
+                    <button class="btn-logout sidebar-logout" id="btn-member-logout">Logout</button>
+                </div>
+            </aside>
+
+            <!-- Sidebar overlay for mobile -->
+            <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+            <!-- Main Content -->
+            <div class="member-main-wrap">
+                <header class="member-topbar">
+                    <button class="nav-hamburger" id="nav-hamburger">☰</button>
+                    <span class="nav-user-name" id="member-display-name">Member</span>
+                    <button class="btn-logout mobile-only" id="btn-member-logout-mobile">Logout</button>
+                </header>
+                <main class="portal-main member-main-content">
+                    <section id="section-home" class="portal-section active"></section>
+                    <section id="section-devotional" class="portal-section"></section>
+                    <section id="section-verse-day" class="portal-section"></section>
+                    <section id="section-reading-plans" class="portal-section"></section>
+                    <section id="section-bible" class="portal-section"></section>
+                    <section id="section-quiz" class="portal-section"></section>
+                    <section id="section-articles" class="portal-section"></section>
+                    <section id="section-podcasts" class="portal-section"></section>
+                    <section id="section-journal" class="portal-section"></section>
+                    <section id="section-testimonies" class="portal-section"></section>
+                    <section id="section-memorization" class="portal-section"></section>
+                    <section id="section-courses" class="portal-section"></section>
+                    <section id="section-prayer" class="portal-section"></section>
+                    <section id="section-prayer-groups" class="portal-section"></section>
+                    <section id="section-prayer-reminders" class="portal-section"></section>
+                    <section id="section-fasting" class="portal-section"></section>
+                    <section id="section-prayer-calendar" class="portal-section"></section>
+                    <section id="section-worship" class="portal-section"></section>
+                    <section id="section-playlists" class="portal-section"></section>
+                    <section id="section-choir" class="portal-section"></section>
+                    <section id="section-song-requests" class="portal-section"></section>
+                    <section id="section-videos" class="portal-section"></section>
+                    <section id="section-audio" class="portal-section"></section>
+                    <section id="section-services" class="portal-section"></section>
+                    <section id="section-events" class="portal-section"></section>
+                    <section id="section-event-galleries" class="portal-section"></section>
+                    <section id="section-sermon-notes" class="portal-section"></section>
+                    <section id="section-bulletins" class="portal-section"></section>
+                    <section id="section-family-connections" class="portal-section"></section>
+                    <section id="section-family-prayer" class="portal-section"></section>
+                    <section id="section-family-devotional" class="portal-section"></section>
+                    <section id="section-children" class="portal-section"></section>
+                    <section id="section-youth" class="portal-section"></section>
+                    <section id="section-parenting" class="portal-section"></section>
+                    <section id="section-directory" class="portal-section"></section>
+                    <section id="section-ministry" class="portal-section"></section>
+                    <section id="section-volunteers" class="portal-section"></section>
+                    <section id="section-birthdays" class="portal-section"></section>
+                    <section id="section-chats" class="portal-section"></section>
+                    <section id="section-announce" class="portal-section"></section>
+                    <section id="section-newsletters" class="portal-section"></section>
+                    <section id="section-notifications" class="portal-section"></section>
+                    <section id="section-challenges" class="portal-section"></section>
+                    <section id="section-ai-chat" class="portal-section"></section>
+                    <section id="section-history" class="portal-section"></section>
+                </main>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!--           PAGE: ADMIN PANEL                 -->
+    <!-- ═══════════════════════════════════════════ -->
+    <div id="page-admin-panel" class="page portal-page">
+        <div class="admin-layout">
+            <!-- Sidebar -->
+            <aside class="admin-sidebar" id="admin-sidebar">
+                <div class="sidebar-brand">
+                    <span>⚙️</span>
+                    <span>Admin Panel</span>
+                </div>
+                <nav class="sidebar-nav">
+                    <a href="#" class="sidebar-link active" data-admin-section="dashboard">
+                        <span>📊</span> Dashboard
+                    </a>
+                    <a href="#" class="sidebar-link" data-admin-section="upload-video">
+                        <span>🎬</span> Upload Video
+                    </a>
+                    <a href="#" class="sidebar-link" data-admin-section="manage-videos">
+                        <span>📹</span> Manage Videos
+                    </a>
+                    <a href="#" class="sidebar-link" data-admin-section="upload-audio">
+                        <span>🎵</span> Upload Audio
+                    </a>
+                    <a href="#" class="sidebar-link" data-admin-section="manage-audio">
+                        <span>🔊</span> Manage Audio
+                    </a>
+                    <a href="#" class="sidebar-link" data-admin-section="add-event">
+                        <span>📅</span> Add Event
+                    </a>
+                    <a href="#" class="sidebar-link" data-admin-section="manage-events">
+                        <span>📅</span> Manage Events
+                    </a>
+                    <a href="#" class="sidebar-link" data-admin-section="event-galleries">
+                        <span>🖼️</span> Event Galleries
+                    </a>
+                    <a href="#" class="sidebar-link" data-admin-section="add-verse">
+                        <span>📖</span> Add Bible Verse
+                    </a>
+                    <a href="#" class="sidebar-link" data-admin-section="manage-verses">
+                        <span>📜</span> Manage Verses
+                    </a>
+                    <a href="#" class="sidebar-link" data-admin-section="add-devotional">
+                        <span>✝️</span> Add Devotional
+                    </a>
+                    <a href="#" class="sidebar-link" data-admin-section="manage-devotionals">
+                        <span>📖</span> Manage Devotionals
+                    </a>
+                    <a href="#" class="sidebar-link" data-admin-section="add-announcement">
+                        <span>📢</span> Add Announcement
+                    </a>
+                    <a href="#" class="sidebar-link" data-admin-section="manage-announcements">
+                        <span>📣</span> Manage Announcements
+                    </a>
+                    <a href="#" class="sidebar-link" data-admin-section="manage-prayer">
+                        <span>🙏</span> Prayer Requests
+                    </a>
+                    <a href="#" class="sidebar-link" data-admin-section="add-worship">
+                        <span>🎤</span> Add Worship Song
+                    </a>
+                    <a href="#" class="sidebar-link" data-admin-section="manage-worship">
+                        <span>🎵</span> Manage Worship
+                    </a>
+                    <a href="#" class="sidebar-link" data-admin-section="add-article">
+                        <span>📰</span> Add Article
+                    </a>
+                    <a href="#" class="sidebar-link" data-admin-section="manage-articles">
+                        <span>📄</span> Manage Articles
+                    </a>
+                    <a href="#" class="sidebar-link" data-admin-section="add-quiz">
+                        <span>🧠</span> Add Quiz Question
+                    </a>
+                    <a href="#" class="sidebar-link" data-admin-section="manage-quiz">
+                        <span>❓</span> Manage Quiz
+                    </a>
+                    <a href="#" class="sidebar-link" data-admin-section="manage-members">
+                        <span>👥</span> Manage Members
+                    </a>
+                    <a href="#" class="sidebar-link" data-admin-section="platform-manage">
+                        <span>⚡</span> Platform Features
+                    </a>
+                    <a href="#" class="sidebar-link" data-admin-section="send-notification">
+                        <span>🔔</span> Send Notification
+                    </a>
+                    <a href="#" class="sidebar-link" data-admin-section="reset-db">
+                        <span>⚠️</span> Reset Database
+                    </a>
+                    <a href="#" class="sidebar-link" data-admin-section="social-analytics">
+                        <span>📈</span> Social Analytics
+                    </a>
+                </nav>
+                <div class="sidebar-footer">
+                    <span class="sidebar-admin-name" id="admin-display-name">Admin</span>
+                    <button class="btn-logout sidebar-logout" id="btn-admin-logout">Logout</button>
+                </div>
+            </aside>
+
+            <!-- Admin Main Content -->
+            <main class="admin-main">
+                <!-- Toggle sidebar button for mobile -->
+                <button class="admin-menu-toggle" id="admin-menu-toggle">☰ Menu</button>
+
+                <!-- ADMIN SECTION: Dashboard -->
+                <section id="admin-section-dashboard" class="admin-section active">
+                    <div class="admin-section-header">
+                        <h2>📊 Dashboard</h2>
+                        <p>Overview of your church content</p>
+                    </div>
+                    <div class="admin-stats-grid">
+                        <div class="admin-stat-card">
+                            <div class="asc-icon">🎬</div>
+                            <div class="asc-num" id="admin-stat-videos">0</div>
+                            <div class="asc-label">Videos</div>
+                        </div>
+                        <div class="admin-stat-card">
+                            <div class="asc-icon">🎵</div>
+                            <div class="asc-num" id="admin-stat-audio">0</div>
+                            <div class="asc-label">Audio Files</div>
+                        </div>
+                        <div class="admin-stat-card">
+                            <div class="asc-icon">📅</div>
+                            <div class="asc-num" id="admin-stat-events">0</div>
+                            <div class="asc-label">Events</div>
+                        </div>
+                        <div class="admin-stat-card">
+                            <div class="asc-icon">📖</div>
+                            <div class="asc-num" id="admin-stat-verses">0</div>
+                            <div class="asc-label">Bible Verses</div>
+                        </div>
+                        <div class="admin-stat-card">
+                            <div class="asc-icon">👥</div>
+                            <div class="asc-num" id="admin-stat-members">0</div>
+                            <div class="asc-label">Members</div>
+                        </div>
+                    </div>
+                    <div class="admin-quick-actions">
+                        <h3>Quick Actions</h3>
+                        <div class="quick-actions-grid">
+                            <button class="qa-btn" data-admin-section="upload-video">🎬 Upload Video</button>
+                            <button class="qa-btn" data-admin-section="upload-audio">🎵 Upload Audio</button>
+                            <button class="qa-btn" data-admin-section="add-event">📅 Add Event</button>
+                            <button class="qa-btn" data-admin-section="add-verse">📖 Add Bible Verse</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ADMIN SECTION: Social Analytics -->
+                <section id="admin-section-social-analytics" class="admin-section">
+                    <div class="admin-section-header">
+                        <h2>📈 Social Analytics</h2>
+                        <p>Track media views and likes from users</p>
+                    </div>
+                    <div class="admin-stats-grid" id="analytics-stats-grid">
+                        <div class="admin-stat-card">
+                            <div class="asc-icon">❤️</div>
+                            <div class="asc-num" id="stat-total-likes">0</div>
+                            <div class="asc-label">Total Likes</div>
+                        </div>
+                        <div class="admin-stat-card">
+                            <div class="asc-icon">👁️</div>
+                            <div class="asc-num" id="stat-total-views">0</div>
+                            <div class="asc-label">Total Views</div>
+                        </div>
+                    </div>
+                    
+                    <h3 style="margin-top: 20px; color: var(--gold);">Recent Engagement Activity</h3>
+                    <div class="admin-content-list" id="analytics-activity-list"></div>
+                </section>
+
+                <!-- ADMIN SECTION: Upload Video -->
+                <section id="admin-section-upload-video" class="admin-section">
+                    <div class="admin-section-header">
+                        <h2>🎬 Upload Video</h2>
+                        <p>Add a new sermon or devotional video</p>
+                    </div>
+                    <form id="upload-video-form" class="admin-form" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <label>Video Title *</label>
+                            <input type="text" id="video-title" placeholder="e.g. Finding Strength in God's Promises" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Category</label>
+                            <select id="video-category">
+                                <option value="Sermon">Sermon</option>
+                                <option value="Devotional">Devotional</option>
+                                <option value="Worship">Worship</option>
+                                <option value="Teaching">Teaching</option>
+                                <option value="Testimony">Testimony</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Description</label>
+                            <textarea id="video-desc" placeholder="Brief description of this video..." rows="3"></textarea>
+                        </div>
+                        <div class="upload-type-tabs">
+                            <button type="button" class="upload-type-tab active" id="video-tab-file">📁 Upload File</button>
+                            <button type="button" class="upload-type-tab" id="video-tab-url">🔗 Video URL</button>
+                        </div>
+                        <div id="video-file-area" class="form-group">
+                            <label>Video File (MP4, WebM, etc.)</label>
+                            <div class="file-drop-area" id="video-drop-area">
+                                <span class="file-drop-icon">🎬</span>
+                                <p>Drop video here or <label for="video-file" class="file-choose-link">browse</label></p>
+                                <p class="file-size-hint">Max size: 500MB</p>
+                                <input type="file" id="video-file" name="video" accept="video/*" class="file-input-hidden">
+                            </div>
+                            <div class="file-selected-info hidden" id="video-file-info"></div>
+                        </div>
+                        <div id="video-url-area" class="form-group hidden">
+                            <label>Video URL (YouTube, Vimeo, or direct link)</label>
+                            <input type="url" id="video-url" placeholder="https://www.youtube.com/watch?v=...">
+                        </div>
+                        <div class="upload-progress hidden" id="video-upload-progress">
+                            <div class="progress-bar"><div class="progress-fill" id="video-progress-fill"></div></div>
+                            <span id="video-progress-text">Uploading...</span>
+                        </div>
+                        <div id="upload-video-msg" class="form-message"></div>
+                        <button type="submit" class="btn-admin-submit">
+                            <span>Upload Video</span>
+                            <div class="btn-spinner hidden"></div>
+                        </button>
+                    </form>
+                </section>
+
+                <!-- ADMIN SECTION: Manage Videos -->
+                <section id="admin-section-manage-videos" class="admin-section">
+                    <div class="admin-section-header">
+                        <h2>📹 Manage Videos</h2>
+                        <p>View and delete uploaded videos</p>
+                    </div>
+                    <div class="admin-content-list" id="admin-videos-list"></div>
+                </section>
+
+                <!-- ADMIN SECTION: Upload Audio -->
+                <section id="admin-section-upload-audio" class="admin-section">
+                    <div class="admin-section-header">
+                        <h2>🎵 Upload Audio</h2>
+                        <p>Add a new audio sermon or devotional</p>
+                    </div>
+                    <form id="upload-audio-form" class="admin-form" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <label>Audio Title *</label>
+                            <input type="text" id="audio-title" placeholder="e.g. Walking in Faith" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Pastor / Speaker Name</label>
+                            <input type="text" id="audio-pastor" placeholder="e.g. Pastor John Smith">
+                        </div>
+                        <div class="form-group">
+                            <label>Description</label>
+                            <textarea id="audio-desc" placeholder="Brief description..." rows="3"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Audio File (MP3, WAV, etc.) *</label>
+                            <div class="file-drop-area" id="audio-drop-area">
+                                <span class="file-drop-icon">🎵</span>
+                                <p>Drop audio here or <label for="audio-file" class="file-choose-link">browse</label></p>
+                                <p class="file-size-hint">Max size: 100MB</p>
+                                <input type="file" id="audio-file" name="audio" accept="audio/*" class="file-input-hidden">
+                            </div>
+                            <div class="file-selected-info hidden" id="audio-file-info"></div>
+                        </div>
+                        <div class="upload-progress hidden" id="audio-upload-progress">
+                            <div class="progress-bar"><div class="progress-fill" id="audio-progress-fill"></div></div>
+                            <span id="audio-progress-text">Uploading...</span>
+                        </div>
+                        <div id="upload-audio-msg" class="form-message"></div>
+                        <button type="submit" class="btn-admin-submit">
+                            <span>Upload Audio</span>
+                            <div class="btn-spinner hidden"></div>
+                        </button>
+                    </form>
+                </section>
+
+                <!-- ADMIN SECTION: Manage Audio -->
+                <section id="admin-section-manage-audio" class="admin-section">
+                    <div class="admin-section-header">
+                        <h2>🔊 Manage Audio</h2>
+                        <p>View and delete uploaded audio files</p>
+                    </div>
+                    <div class="admin-content-list" id="admin-audio-list"></div>
+                </section>
+
+                <!-- ADMIN SECTION: Add Event -->
+                <section id="admin-section-add-event" class="admin-section">
+                    <div class="admin-section-header">
+                        <h2>📅 Add Event</h2>
+                        <p>Schedule a new church event</p>
+                    </div>
+                    <form id="add-event-form" class="admin-form">
+                        <div class="form-group">
+                            <label>Event Title *</label>
+                            <input type="text" id="event-title" placeholder="e.g. Sunday Service" required>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Date *</label>
+                                <input type="date" id="event-date" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Time</label>
+                                <input type="time" id="event-time">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Location</label>
+                            <input type="text" id="event-location" placeholder="e.g. Main Hall, St Antony Church">
+                        </div>
+                        <div class="form-group">
+                            <label>Description</label>
+                            <textarea id="event-desc" placeholder="Details about this event..." rows="4"></textarea>
+                        </div>
+                        <div id="add-event-msg" class="form-message"></div>
+                        <button type="submit" class="btn-admin-submit">
+                            <span>Add Event</span>
+                            <div class="btn-spinner hidden"></div>
+                        </button>
+                    </form>
+                </section>
+
+                <!-- ADMIN SECTION: Manage Events -->
+                <section id="admin-section-manage-events" class="admin-section">
+                    <div class="admin-section-header">
+                        <h2>🗓️ Manage Events</h2>
+                        <p>View and delete church events</p>
+                    </div>
+                    <div class="admin-content-list" id="admin-events-list"></div>
+                </section>
+
+                <!-- ADMIN SECTION: Add Bible Verse -->
+                <section id="admin-section-add-verse" class="admin-section">
+                    <div class="admin-section-header">
+                        <h2>📖 Add Bible Verse</h2>
+                        <p>Share God's Word with the congregation</p>
+                    </div>
+                    <form id="add-verse-form" class="admin-form">
+                        <div class="form-group">
+                            <label>Verse Text *</label>
+                            <textarea id="verse-text" placeholder="Enter the Bible verse text..." rows="5" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Reference *</label>
+                            <input type="text" id="verse-reference" placeholder="e.g. John 3:16" required>
+                        </div>
+                        <div id="add-verse-msg" class="form-message"></div>
+                        <button type="submit" class="btn-admin-submit">
+                            <span>Add Verse</span>
+                            <div class="btn-spinner hidden"></div>
+                        </button>
+                    </form>
+                </section>
+
+                <!-- ADMIN SECTION: Manage Verses -->
+                <section id="admin-section-manage-verses" class="admin-section">
+                    <div class="admin-section-header">
+                        <h2>📜 Manage Bible Verses</h2>
+                        <p>View and delete Bible verses</p>
+                    </div>
+                    <div class="admin-content-list" id="admin-verses-list"></div>
+                </section>
+
+                <!-- Dynamic admin sections (forms injected by app.js) -->
+                <section id="admin-section-add-devotional" class="admin-section"></section>
+                <section id="admin-section-manage-devotionals" class="admin-section"></section>
+                <section id="admin-section-add-announcement" class="admin-section"></section>
+                <section id="admin-section-manage-announcements" class="admin-section"></section>
+                <section id="admin-section-manage-prayer" class="admin-section"></section>
+                <section id="admin-section-add-worship" class="admin-section"></section>
+                <section id="admin-section-manage-worship" class="admin-section"></section>
+                <section id="admin-section-add-article" class="admin-section"></section>
+                <section id="admin-section-manage-articles" class="admin-section"></section>
+                <section id="admin-section-add-quiz" class="admin-section"></section>
+                <section id="admin-section-manage-quiz" class="admin-section"></section>
+                <section id="admin-section-event-galleries" class="admin-section"></section>
+                <section id="admin-section-manage-members" class="admin-section"></section>
+                <section id="admin-section-platform-manage" class="admin-section"></section>
+                <section id="admin-section-send-notification" class="admin-section"></section>
+
+                <!-- ADMIN SECTION: Reset DB -->
+                <section id="admin-section-reset-db" class="admin-section">
+                    <div class="admin-section-header">
+                        <h2>⚠️ Reset Database</h2>
+                        <p>Danger zone: Delete all content from the application.</p>
+                    </div>
+                    <div class="admin-form">
+                        <div class="form-group" style="background: #fff5f5; padding: 1.5rem; border-radius: 8px; border: 1px solid #ffcccc;">
+                            <h3 style="color: #d32f2f; margin-bottom: 0.5rem;">Warning</h3>
+                            <p style="color: #666; margin-bottom: 1rem;">Clicking this button will permanently delete all videos, audio, events, verses, devotionals, prayers, and other content. Member accounts and admins will be preserved.</p>
+                            <button type="button" class="btn-admin-submit" id="btn-admin-reset-db" style="background: #d32f2f;">
+                                <span>Reset Database</span>
+                                <div class="btn-spinner hidden"></div>
+                            </button>
+                            <div id="admin-reset-msg" class="form-message" style="margin-top: 1rem;"></div>
+                        </div>
+                    </div>
+                </section>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!--          GLOBAL: VIDEO MODAL                -->
+    <!-- ═══════════════════════════════════════════ -->
+    <div id="video-modal" class="modal hidden">
+        <div class="modal-backdrop" id="video-modal-backdrop"></div>
+        <div class="modal-content video-modal-content">
+            <button class="modal-close" id="video-modal-close">✕</button>
+            <div id="video-modal-player"></div>
+            <div class="video-modal-info">
+                <h3 id="video-modal-title"></h3>
+                <p id="video-modal-desc"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!--          GLOBAL: TOAST NOTIFICATION         -->
+    <!-- ═══════════════════════════════════════════ -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <script src="/lang.js"></script>
+    <script src="app.js"></script>
+    <script src="features.js"></script>
+    <script src="admin-features.js"></script>
+</body>
+</html>

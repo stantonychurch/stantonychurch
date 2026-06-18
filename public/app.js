@@ -1025,7 +1025,7 @@ async function loadEventGalleries() {
     
     const list = document.getElementById('event-galleries-list');
     try {
-      const galleries = await api('GET', '/event-galleries');
+      const galleries = await api('GET', '/platform/event-galleries');
       if (galleries.length === 0) {
         list.innerHTML = `<div class="empty-state">No galleries available.</div>`;
         return;
@@ -1049,7 +1049,7 @@ async function loadEventGalleries() {
     const grid = document.getElementById('viewer-media-grid');
     grid.innerHTML = '<div class="loading-state">Loading media...</div>';
     try {
-      const media = await api('GET', `/event-galleries/${id}/media`);
+      const media = await api('GET', `/platform/event-galleries/${id}/media`);
       if (media.length === 0) {
         grid.innerHTML = '<div class="empty-state">No media in this gallery.</div>';
         return;
@@ -1071,13 +1071,13 @@ async function loadEventGalleries() {
   };
 
   window.viewGalleryMedia = async (id, url) => {
-    try { await api('POST', `/event-galleries/media/${id}/view`); } catch(e){}
+    try { await api('POST', `/platform/event-galleries/media/${id}/view`); } catch(e){}
     if(url) window.open(url, '_blank');
   };
   
   window.likeGalleryMedia = async (id) => {
     try { 
-        await api('POST', `/event-galleries/media/${id}/like`); 
+        await api('POST', `/platform/event-galleries/media/${id}/like`); 
         showToast('Liked!', 'success');
     } catch(e) { showToast(e.message, 'error'); }
   };
@@ -1753,6 +1753,14 @@ async function loadAdminSection(section) {
     'manage-members': loadAdminMembers,
     'manage-prayer': loadAdminPrayer,
     'manage-quiz': loadAdminQuiz,
+    'upload-podcast': loadAdminUploadPodcast,
+    'manage-podcasts': loadAdminPodcasts,
+    'children-stories': loadAdminChildrenStories,
+    'family-groups': loadAdminFamilyGroups,
+    'youth-groups': loadAdminYouthGroups,
+    'playlists-choir': loadAdminPlaylistsChoir,
+    'testimonies': loadAdminTestimonies,
+    'faith-community': loadAdminFaithCommunity,
   };
   if (loaders[section]) await loaders[section]();
 }
@@ -1883,15 +1891,31 @@ function initAddEvent() {
     const btn = e.target.querySelector('.btn-admin-submit');
     setBtnLoading(btn, true);
     try {
-      await api('POST', '/events', {
+      const eventRes = await api('POST', '/events', {
         title: document.getElementById('event-title').value.trim(),
         event_date: document.getElementById('event-date').value,
         event_time: document.getElementById('event-time').value,
         location: document.getElementById('event-location').value.trim(),
         description: document.getElementById('event-desc').value.trim()
       });
+      
+      if (document.getElementById('event-attach-notes').checked) {
+        const notesTitle = document.getElementById('event-notes-title').value.trim();
+        const notesContent = document.getElementById('event-notes-content').value.trim();
+        const notesLang = document.getElementById('event-notes-lang').value;
+        if (notesTitle) {
+          await api('POST', '/platform/sermon-notes', {
+            title: notesTitle,
+            content: notesContent,
+            language: notesLang,
+            event_id: eventRes.id
+          });
+        }
+      }
+
       showMsg('add-event-msg', '✅ Event added successfully!', 'success');
       form.reset();
+      document.getElementById('event-notes-group').classList.add('hidden');
     } catch (err) { showMsg('add-event-msg', err.message, 'error'); }
     finally { setBtnLoading(btn, false); }
   });
@@ -1957,8 +1981,23 @@ function initAddAnnouncement() {
         type: document.getElementById('ann-type').value,
         is_emergency: document.getElementById('ann-emergency').checked
       });
+      
+      if (document.getElementById('ann-attach-bulletin').checked) {
+        const bulTitle = document.getElementById('ann-bulletin-title').value.trim();
+        const bulContent = document.getElementById('ann-bulletin-content').value.trim();
+        const bulDate = document.getElementById('ann-bulletin-date').value;
+        if (bulTitle) {
+          await api('POST', '/platform/bulletins', {
+            title: bulTitle,
+            content: bulContent,
+            week_date: bulDate
+          });
+        }
+      }
+
       showMsg('add-announcement-msg', '✅ Announcement published!', 'success');
       form.reset();
+      document.getElementById('ann-bulletin-group').classList.add('hidden');
     } catch (err) { showMsg('add-announcement-msg', err.message, 'error'); }
     finally { setBtnLoading(btn, false); }
   });

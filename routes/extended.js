@@ -908,18 +908,30 @@ router.post('/youth/:id/post', authenticateToken, requireAdmin, upload.single('m
 
 // Get posts for a family
 router.get('/family/:id/posts', authenticateToken, async (req, res) => {
-    // Verify member is in this family
-    const check = (await db.query('SELECT 1 FROM family_members WHERE family_id = ? AND member_id = ?', [req.params.id, req.user.id]))[0][0];
-    if (!check) return res.status(403).json({ error: 'Not a member of this family.' });
+    const isAdmin = req.user.role === 'admin';
+    if (!isAdmin) {
+        const check = (await db.query('SELECT 1 FROM family_members WHERE family_id = ? AND member_id = ?', [req.params.id, req.user.id]))[0][0];
+        if (!check) return res.status(403).json({ error: 'Not a member of this family.' });
+    }
 
     const posts = (await db.query(`
-        SELECT p.*, m.name as member_name 
+        SELECT p.*, COALESCE(m.name, 'Admin') as member_name 
         FROM family_posts p 
-        JOIN members m ON p.member_id = m.id 
+        LEFT JOIN members m ON p.member_id = m.id 
         WHERE p.family_id = ? 
         ORDER BY p.created_at DESC
     `, [req.params.id]))[0];
     res.json(posts);
+});
+
+// Delete a post in a family (Admin moderation)
+router.delete('/family/posts/:postId', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        await db.query('DELETE FROM family_posts WHERE id = ?', [req.params.postId]);
+        res.json({ message: 'Family post deleted by admin.' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Create a post in a family

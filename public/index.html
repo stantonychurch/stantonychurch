@@ -469,6 +469,30 @@
                     <a href="#" class="sidebar-link" data-admin-section="platform-manage">
                         <span>⚡</span> Platform Features
                     </a>
+                    <a href="#" class="sidebar-link" data-admin-section="upload-podcast">
+                        <span>🎙️</span> Upload Podcast
+                    </a>
+                    <a href="#" class="sidebar-link" data-admin-section="manage-podcasts">
+                        <span>🎧</span> Manage Podcasts
+                    </a>
+                    <a href="#" class="sidebar-link" data-admin-section="children-stories">
+                        <span>📚</span> Children Stories
+                    </a>
+                    <a href="#" class="sidebar-link" data-admin-section="family-groups">
+                        <span>👨‍👩‍👧</span> Family Groups
+                    </a>
+                    <a href="#" class="sidebar-link" data-admin-section="youth-groups">
+                        <span>🧒</span> Youth Groups
+                    </a>
+                    <a href="#" class="sidebar-link" data-admin-section="playlists-choir">
+                        <span>🎵</span> Playlists & Choir
+                    </a>
+                    <a href="#" class="sidebar-link" data-admin-section="testimonies">
+                        <span>💬</span> Testimonies
+                    </a>
+                    <a href="#" class="sidebar-link" data-admin-section="faith-community">
+                        <span>⛪</span> Faith & Community
+                    </a>
                     <a href="#" class="sidebar-link" data-admin-section="send-notification">
                         <span>🔔</span> Send Notification
                     </a>
@@ -700,6 +724,24 @@
                             <label>Description</label>
                             <textarea id="event-desc" placeholder="Details about this event..." rows="4"></textarea>
                         </div>
+                        <div class="form-group">
+                            <label><input type="checkbox" id="event-attach-notes" onchange="document.getElementById('event-notes-group').classList.toggle('hidden', !this.checked)"> Attach Sermon Notes</label>
+                        </div>
+                        <div id="event-notes-group" class="hidden" style="border: 1px dashed var(--gold); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; background: rgba(212, 175, 55, 0.05);">
+                            <h4 style="color: var(--gold); margin-bottom: 0.5rem;">Sermon Notes Details</h4>
+                            <div class="form-group">
+                                <label>Sermon Title</label>
+                                <input type="text" id="event-notes-title" placeholder="Sermon Title">
+                            </div>
+                            <div class="form-group">
+                                <label>Sermon Content / Outline</label>
+                                <textarea id="event-notes-content" placeholder="Sermon outline or notes content..." rows="5"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Language</label>
+                                <select id="event-notes-lang"><option value="en">English</option><option value="ta">Tamil</option></select>
+                            </div>
+                        </div>
                         <div id="add-event-msg" class="form-message"></div>
                         <button type="submit" class="btn-admin-submit">
                             <span>Add Event</span>
@@ -765,6 +807,14 @@
                 <section id="admin-section-manage-members" class="admin-section"></section>
                 <section id="admin-section-platform-manage" class="admin-section"></section>
                 <section id="admin-section-send-notification" class="admin-section"></section>
+                <section id="admin-section-upload-podcast" class="admin-section"></section>
+                <section id="admin-section-manage-podcasts" class="admin-section"></section>
+                <section id="admin-section-children-stories" class="admin-section"></section>
+                <section id="admin-section-family-groups" class="admin-section"></section>
+                <section id="admin-section-youth-groups" class="admin-section"></section>
+                <section id="admin-section-playlists-choir" class="admin-section"></section>
+                <section id="admin-section-testimonies" class="admin-section"></section>
+                <section id="admin-section-faith-community" class="admin-section"></section>
 
                 <!-- ADMIN SECTION: Reset DB -->
                 <section id="admin-section-reset-db" class="admin-section">

@@ -139,7 +139,7 @@ async function initExtendedSchema(db) {
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 member_id INT NOT NULL,
                 title VARCHAR(255) NOT NULL,
-                body TEXT NOT NULL,
+                message TEXT NOT NULL,
                 is_read BOOLEAN DEFAULT 0,
                 type VARCHAR(50) DEFAULT 'general',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

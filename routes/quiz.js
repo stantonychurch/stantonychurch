@@ -4,7 +4,7 @@ const { db } = require('../database');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
 router.get('/', authenticateToken, async (req, res) => {
-    const questions = (await db.query('SELECT * FROM quiz_questions ORDER BY RANDOM()', []))[0];
+    const questions = (await db.query('SELECT * FROM quiz_questions ORDER BY RAND()', []))[0];
     res.json(questions);
 });
 

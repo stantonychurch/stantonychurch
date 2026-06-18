@@ -45,7 +45,7 @@ router.get('/reading-plans/:id/days', authenticateToken, async (req, res) => {
     res.json(days);
 });
 router.post('/reading-plans/:id/start', authenticateToken, async (req, res) => {
-    (await db.query('INSERT OR IGNORE INTO member_reading_progress (member_id, plan_id) VALUES (?, ?)', [req.user.id, req.params.id]))[0];
+    (await db.query('INSERT IGNORE INTO member_reading_progress (member_id, plan_id) VALUES (?, ?)', [req.user.id, req.params.id]))[0];
     const progress = (await db.query('SELECT * FROM member_reading_progress WHERE member_id = ? AND plan_id = ?', [req.user.id, req.params.id]))[0][0];
     res.json(progress);
 });
@@ -68,9 +68,9 @@ router.get('/verse-of-day', authenticateToken, async (req, res) => {
     const today = new Date().toISOString().split('T')[0];
     let entry = (await db.query('SELECT v.* FROM verse_of_day vod JOIN bible_verses v ON v.id = vod.verse_id WHERE vod.display_date = ?', [today]))[0][0];
     if (!entry) {
-        const verse = (await db.query('SELECT * FROM bible_verses ORDER BY RANDOM() LIMIT 1', []))[0][0];
+        const verse = (await db.query('SELECT * FROM bible_verses ORDER BY RAND() LIMIT 1', []))[0][0];
         if (verse) {
-            (await db.query('INSERT OR REPLACE INTO verse_of_day (verse_id, display_date) VALUES (?, ?)', [verse.id, today]))[0];
+            (await db.query('REPLACE INTO verse_of_day (verse_id, display_date) VALUES (?, ?)', [verse.id, today]))[0];
             entry = verse;
         }
     }
@@ -170,14 +170,14 @@ router.post('/courses/:id/lessons', authenticateToken, requireAdmin, async (req,
 router.post('/courses/:id/progress', authenticateToken, async (req, res) => {
     const courseId = req.params.id;
     const course = crud('courses').get(courseId);
-    (await db.query('INSERT OR IGNORE INTO member_course_progress (member_id, course_id) VALUES (?, ?)', [req.user.id, courseId]))[0];
+    (await db.query('INSERT IGNORE INTO member_course_progress (member_id, course_id) VALUES (?, ?)', [req.user.id, courseId]))[0];
     const prog = (await db.query('SELECT * FROM member_course_progress WHERE member_id = ? AND course_id = ?', [req.user.id, courseId]))[0][0];
     const next = (prog.completed_lessons || 0) + 1;
     const done = next >= course.lesson_count;
     (await db.query('UPDATE member_course_progress SET completed_lessons = ?, completed = ?, completed_at = ? WHERE member_id = ? AND course_id = ?', [next, done ? 1 : 0, done ? new Date().toISOString() : null, req.user.id, courseId]))[0];
     if (done) {
         const code = `GC-${courseId}-${req.user.id}-${Date.now()}`;
-        (await db.query('INSERT OR IGNORE INTO certificates (member_id, course_id, cert_code) VALUES (?, ?, ?)', [req.user.id, courseId, code]))[0];
+        (await db.query('INSERT IGNORE INTO certificates (member_id, course_id, cert_code) VALUES (?, ?, ?)', [req.user.id, courseId, code]))[0];
         return res.json({ completed: true, cert_code: code, message: 'Course completed! Certificate issued.' });
     }
     res.json({ completed_lessons: next, completed: false });
@@ -209,7 +209,7 @@ router.post('/prayer-groups', authenticateToken, requireAdmin, async (req, res) 
     res.json({ id: r.insertId });
 });
 router.post('/prayer-groups/:id/join', authenticateToken, async (req, res) => {
-    (await db.query('INSERT OR IGNORE INTO prayer_group_members (group_id, member_id) VALUES (?, ?)', [req.params.id, req.user.id]))[0];
+    (await db.query('INSERT IGNORE INTO prayer_group_members (group_id, member_id) VALUES (?, ?)', [req.params.id, req.user.id]))[0];
     res.json({ message: 'Joined prayer group!' });
 });
 router.get('/prayer-reminders/:memberId', authenticateToken, async (req, res) => {
@@ -278,7 +278,7 @@ router.post('/service-schedules', authenticateToken, requireAdmin, async (req, r
     res.json({ id: r.insertId });
 });
 router.post('/events/:id/register', authenticateToken, async (req, res) => {
-    (await db.query('INSERT OR IGNORE INTO event_registrations (event_id, member_id) VALUES (?, ?)', [req.params.id, req.user.id]))[0];
+    (await db.query('INSERT IGNORE INTO event_registrations (event_id, member_id) VALUES (?, ?)', [req.params.id, req.user.id]))[0];
     res.json({ message: 'Registered for event!' });
 });
 router.get('/events/:id/registrations', authenticateToken, requireAdmin, async (req, res) => {
@@ -423,7 +423,7 @@ router.post('/ministry-groups', authenticateToken, requireAdmin, async (req, res
     res.json({ id: r.insertId });
 });
 router.post('/ministry-groups/:id/join', authenticateToken, async (req, res) => {
-    (await db.query('INSERT OR IGNORE INTO ministry_members (group_id, member_id) VALUES (?, ?)', [req.params.id, req.user.id]))[0];
+    (await db.query('INSERT IGNORE INTO ministry_members (group_id, member_id) VALUES (?, ?)', [req.params.id, req.user.id]))[0];
     res.json({ message: 'Joined ministry group!' });
 });
 router.get('/volunteers', authenticateToken, async (req, res) => {
@@ -436,7 +436,7 @@ router.post('/volunteers', authenticateToken, requireAdmin, async (req, res) => 
     res.json({ id: r.insertId });
 });
 router.post('/volunteers/:id/signup', authenticateToken, async (req, res) => {
-    (await db.query('INSERT OR IGNORE INTO volunteer_signups (opportunity_id, member_id) VALUES (?, ?)', [req.params.id, req.user.id]))[0];
+    (await db.query('INSERT IGNORE INTO volunteer_signups (opportunity_id, member_id) VALUES (?, ?)', [req.params.id, req.user.id]))[0];
     res.json({ message: 'Signed up to volunteer!' });
 });
 router.get('/birthdays', authenticateToken, async (req, res) => {
@@ -506,7 +506,7 @@ router.post('/challenges', authenticateToken, requireAdmin, async (req, res) => 
     res.json({ id: r.insertId });
 });
 router.post('/challenges/:id/complete', authenticateToken, async (req, res) => {
-    (await db.query('INSERT OR IGNORE INTO member_challenges (member_id, challenge_id) VALUES (?, ?)', [req.user.id, req.params.id]))[0];
+    (await db.query('INSERT IGNORE INTO member_challenges (member_id, challenge_id) VALUES (?, ?)', [req.user.id, req.params.id]))[0];
     res.json({ message: 'Challenge completed! 🎉' });
 });
 router.get('/challenges/completed/:memberId', authenticateToken, async (req, res) => {
@@ -536,7 +536,7 @@ router.post('/ai-chat', authenticateToken, async (req, res) => {
     for (const [key, val] of Object.entries(BIBLE_ANSWERS)) {
         if (key !== 'default' && q.includes(key)) { answer = val; break; }
     }
-    const verse = (await db.query('SELECT verse, reference FROM bible_verses ORDER BY RANDOM() LIMIT 1', []))[0][0];
+    const verse = (await db.query('SELECT verse, reference FROM bible_verses ORDER BY RAND() LIMIT 1', []))[0][0];
     if (verse) answer += `\n\n📖 Related verse: "${verse.verse}" — ${verse.reference}`;
     (await db.query('INSERT INTO ai_chat_log (member_id, question, answer) VALUES (?, ?, ?)', [req.user.id, question, answer]))[0];
     res.json({ answer });
@@ -747,7 +747,7 @@ router.post('/youth/join', authenticateToken, async (req, res) => {
     const cleanCode = qr_code_id.trim().toUpperCase();
     const group = (await db.query('SELECT id FROM youth_connections WHERE qr_code_id = ?', [cleanCode]))[0][0];
     if (!group) return res.status(404).json({ error: 'Invalid Invite code.' });
-    (await db.query('INSERT OR IGNORE INTO youth_members (youth_group_id, member_id, status) VALUES (?, ?, ?)', [group.id, req.user.id, 'approved']))[0];
+    (await db.query('INSERT IGNORE INTO youth_members (youth_group_id, member_id, status) VALUES (?, ?, ?)', [group.id, req.user.id, 'approved']))[0];
     res.json({ message: 'Joined youth group successfully.', id: group.id });
 });
 
@@ -852,8 +852,8 @@ router.post('/family/:id/candle/burn', authenticateToken, async (req, res) => {
     const today = new Date().toISOString().split('T')[0];
 
     // Ensure records exist
-    (await db.query('INSERT OR IGNORE INTO family_candles (family_id) VALUES (?)', [familyId]))[0];
-    (await db.query('INSERT OR IGNORE INTO family_candle_history (family_id, date_string) VALUES (?, ?)', [familyId, today]))[0];
+    (await db.query('INSERT IGNORE INTO family_candles (family_id) VALUES (?)', [familyId]))[0];
+    (await db.query('INSERT IGNORE INTO family_candle_history (family_id, date_string) VALUES (?, ?)', [familyId, today]))[0];
 
     // Get current state
     const candle = (await db.query('SELECT * FROM family_candles WHERE family_id = ?', [familyId]))[0][0];

@@ -102,7 +102,7 @@ export default function PrayerScreen() {
               <Text style={styles.prayerName}>{activeTab === 'my' ? t('you') : item.member_name}</Text>
               {!item.is_public && activeTab === 'my' && <Text style={{color: Colors.pink, fontSize: 11, fontWeight: 'bold'}}>{t('private')}</Text>}
             </View>
-            <Text style={styles.prayerText}>{item.request_text}</Text>
+            <Text style={styles.prayerText}>{item.request_text || item.request}</Text>
             <Text style={styles.prayerMeta}>{new Date(item.created_at).toLocaleDateString()}</Text>
             {activeTab === 'my' && item.status === 'answered' && (
               <View style={{marginTop: 8, padding: 8, backgroundColor: 'rgba(46, 204, 113, 0.1)', borderRadius: 4}}>

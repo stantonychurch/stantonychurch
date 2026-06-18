@@ -607,7 +607,20 @@ async function initExtendedSchema(db) {
             )
         `);
 
-        console.log('✅ Extended schema initialized with all 38 tables.');
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS prayer_group_posts (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                group_id INT NOT NULL,
+                member_id INT NOT NULL,
+                member_name VARCHAR(255),
+                content TEXT,
+                media_url VARCHAR(255),
+                media_type VARCHAR(100),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        console.log('✅ Extended schema initialized with all 39 tables.');
     } catch (e) {
         console.error('❌ Extended schema init error:', e);
     }

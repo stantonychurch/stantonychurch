@@ -46,6 +46,13 @@ export default function MoreScreen() {
 
   // Prayer Groups states
   const [prayerGroups, setPrayerGroups] = useState([]);
+  const [selectedPrayerGroup, setSelectedPrayerGroup] = useState(null);
+  const [prayerGroupPosts, setPrayerGroupPosts] = useState([]);
+  const [postText, setPostText] = useState('');
+  const [selectedPostImage, setSelectedPostImage] = useState(null);
+  const [uploadingPost, setUploadingPost] = useState(false);
+  const [editingPostId, setEditingPostId] = useState(null);
+  const [editText, setEditText] = useState('');
 
   // Worship Playlists & Choir states
   const [playlists, setPlaylists] = useState([]);
@@ -226,6 +233,86 @@ export default function MoreScreen() {
     } catch(e) {
       Alert.alert('Error', e.message);
     }
+  }
+
+  async function loadPrayerGroupPosts(groupId) {
+    try {
+      const res = await getPlatform(`/prayer-groups/${groupId}/posts`);
+      setPrayerGroupPosts(res.data || []);
+    } catch (e) {
+      setPrayerGroupPosts([]);
+      Alert.alert('Error', e.message);
+    }
+  }
+
+  async function handleOpenFeed(group) {
+    setSelectedPrayerGroup(group);
+    setPrayerGroupPosts([]);
+    setPostText('');
+    setSelectedPostImage(null);
+    setEditingPostId(null);
+    await loadPrayerGroupPosts(group.id);
+  }
+
+  async function handlePickPostImage() {
+    try {
+      const res = await DocumentPicker.getDocumentAsync({ type: 'image/*' });
+      if (!res.canceled && res.assets && res.assets.length > 0) {
+        setSelectedPostImage(res.assets[0]);
+      }
+    } catch(e) { console.log(e); }
+  }
+
+  async function handleCreatePost() {
+    if (!postText.trim() && !selectedPostImage) return Alert.alert('Required', 'Please enter some text or select an image.');
+    setUploadingPost(true);
+    try {
+      const formData = new FormData();
+      formData.append('content', postText.trim());
+      if (selectedPostImage) {
+        formData.append('file', {
+          uri: selectedPostImage.uri,
+          name: selectedPostImage.name,
+          type: selectedPostImage.mimeType || 'image/jpeg'
+        });
+      }
+      await apiClient.post(`/platform/prayer-groups/${selectedPrayerGroup.id}/posts`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 600000
+      });
+      setPostText('');
+      setSelectedPostImage(null);
+      await loadPrayerGroupPosts(selectedPrayerGroup.id);
+      Alert.alert('Success', 'Post shared to group feed!');
+    } catch (e) {
+      Alert.alert('Error', e.message);
+    } finally {
+      setUploadingPost(false);
+    }
+  }
+
+  async function handleUpdatePost(postId) {
+    if (!editText.trim()) return Alert.alert('Required', 'Post text cannot be empty');
+    try {
+      await apiClient.put(`/platform/prayer-groups/posts/${postId}`, { content: editText.trim() });
+      setEditingPostId(null);
+      setEditText('');
+      await loadPrayerGroupPosts(selectedPrayerGroup.id);
+    } catch (e) {
+      Alert.alert('Error', e.message);
+    }
+  }
+
+  async function handleDeletePost(postId) {
+    Alert.alert('Delete Post', 'Are you sure you want to delete this post?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: async () => {
+        try {
+          await apiClient.delete(`/platform/prayer-groups/posts/${postId}`);
+          await loadPrayerGroupPosts(selectedPrayerGroup.id);
+        } catch (e) { Alert.alert('Error', e.message); }
+      }}
+    ]);
   }
 
   // Choir Materials Handlers
@@ -591,17 +678,135 @@ export default function MoreScreen() {
             {/* PRAYER GROUPS SECTION */}
             {activeSection === 'prayer_groups' && (
               <View>
-                {prayerGroups.map(pg => (
-                  <View key={pg.id} style={styles.planCard}>
-                    <Text style={styles.planTitle}>⭕ {pg.name}</Text>
-                    <Text style={styles.planDesc}>{pg.description || 'No description provided.'}</Text>
-                    <Text style={{color: Colors.gold, fontSize: 12, marginVertical: 6, fontWeight: 'bold'}}>Leader: {pg.leader_name} • Members: {pg.member_count}</Text>
-                    <TouchableOpacity style={[styles.saveBtn, {paddingVertical: 8, marginTop: 5}]} onPress={() => handleJoinPrayerGroup(pg.id)}>
-                      <Text style={styles.saveBtnText}>Join Group</Text>
+                {selectedPrayerGroup ? (
+                  <View>
+                    <TouchableOpacity onPress={() => setSelectedPrayerGroup(null)} style={styles.backBtnSmall}>
+                      <Text style={styles.backTextSmall}>← Back to Groups</Text>
                     </TouchableOpacity>
+                    <Text style={{fontSize: 20, fontWeight: '800', color: Colors.text, marginBottom: 4}}>{selectedPrayerGroup.name}</Text>
+                    <Text style={{fontSize: 13, color: Colors.textMuted, marginBottom: 15}}>{selectedPrayerGroup.description}</Text>
+
+                    {/* COMPOSE POST CARD */}
+                    <View style={styles.composeCard}>
+                      <Text style={styles.composeTitle}>Share an update</Text>
+                      <TextInput 
+                        style={[styles.input, { height: 60 }]} 
+                        placeholder="Write something to the prayer group..." 
+                        placeholderTextColor="#888"
+                        multiline
+                        value={postText}
+                        onChangeText={setPostText}
+                      />
+                      <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 15}}>
+                        <TouchableOpacity style={[styles.saveBtn, {flex: 1, backgroundColor: selectedPostImage ? Colors.gold : 'rgba(255,255,255,0.08)'}]} onPress={handlePickPostImage}>
+                          <Text style={[styles.saveBtnText, {color: selectedPostImage ? '#000' : Colors.text}]}>
+                            {selectedPostImage ? `Selected: ${selectedPostImage.name.substring(0, 15)}...` : '📷 Pick Photo'}
+                          </Text>
+                        </TouchableOpacity>
+                        {selectedPostImage && (
+                          <TouchableOpacity style={{marginLeft: 10}} onPress={() => setSelectedPostImage(null)}>
+                            <Text style={{color: Colors.error, fontWeight: 'bold'}}>Clear</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                      <TouchableOpacity 
+                        style={[styles.saveBtn, (!postText.trim() && !selectedPostImage) && styles.saveBtnDisabled]}
+                        onPress={handleCreatePost}
+                        disabled={(!postText.trim() && !selectedPostImage) || uploadingPost}
+                      >
+                        {uploadingPost ? <ActivityIndicator color={Colors.dark} /> : <Text style={styles.saveBtnText}>Share Post</Text>}
+                      </TouchableOpacity>
+                    </View>
+
+                    <Text style={styles.sectionLabel}>GROUP FEED</Text>
+                    {prayerGroupPosts.map(p => {
+                      const isAuthor = p.member_id === user?.id;
+                      const isAdm = user?.role === 'admin';
+                      const canEdit = isAuthor || isAdm;
+                      
+                      let mediaHtml = null;
+                      if (p.media_url) {
+                        const mediaUri = p.media_url.startsWith('http') ? p.media_url : `${SERVER_URL}${p.media_url}`;
+                        if (p.media_type === 'video') {
+                          mediaHtml = (
+                            <View style={{width: '100%', height: 180, backgroundColor: '#000', borderRadius: Radius.sm, overflow: 'hidden', marginTop: 8}}>
+                              <Video style={{width: '100%', height: '100%'}} source={{ uri: mediaUri }} useNativeControls resizeMode={ResizeMode.CONTAIN} />
+                            </View>
+                          );
+                        } else {
+                          mediaHtml = (
+                            <Image source={{ uri: mediaUri }} style={{width: '100%', height: 180, borderRadius: Radius.sm, marginTop: 8, resizeMode: 'cover'}} />
+                          );
+                        }
+                      }
+
+                      return (
+                        <View key={p.id} style={styles.fastCard}>
+                          <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6}}>
+                            <Text style={{color: Colors.gold, fontWeight: 'bold', fontSize: 13}}>{p.member_name || 'Member'}</Text>
+                            <Text style={{color: Colors.textDim, fontSize: 10}}>{new Date(p.created_at).toLocaleDateString()}</Text>
+                          </View>
+                          
+                          {editingPostId === p.id ? (
+                            <View style={{marginTop: 6}}>
+                              <TextInput 
+                                style={[styles.input, {height: 50, marginBottom: 8}]} 
+                                value={editText} 
+                                onChangeText={setEditText} 
+                                multiline 
+                              />
+                              <View style={{flexDirection: 'row', gap: 10}}>
+                                <TouchableOpacity style={[styles.saveBtn, {flex: 1, paddingVertical: 6, backgroundColor: 'rgba(255,255,255,0.1)'}]} onPress={() => setEditingPostId(null)}>
+                                  <Text style={[styles.saveBtnText, {color: Colors.text}]}>Cancel</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity style={[styles.saveBtn, {flex: 1, paddingVertical: 6}]} onPress={() => handleUpdatePost(p.id)}>
+                                  <Text style={styles.saveBtnText}>Save</Text>
+                                </TouchableOpacity>
+                              </View>
+                            </View>
+                          ) : (
+                            <View>
+                              <Text style={{color: Colors.text, fontSize: 14, lineHeight: 20}}>{p.content}</Text>
+                              {mediaHtml}
+                              
+                              {canEdit && (
+                                <View style={{flexDirection: 'row', justifyContent: 'flex-end', gap: 15, marginTop: 10, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)', paddingTop: 8}}>
+                                  <TouchableOpacity onPress={() => { setEditingPostId(p.id); setEditText(p.content); }}>
+                                    <Text style={{color: Colors.gold, fontSize: 12, fontWeight: 'bold'}}>Edit</Text>
+                                  </TouchableOpacity>
+                                  <TouchableOpacity onPress={() => handleDeletePost(p.id)}>
+                                    <Text style={{color: Colors.error, fontSize: 12, fontWeight: 'bold'}}>Delete</Text>
+                                  </TouchableOpacity>
+                                </View>
+                              )}
+                            </View>
+                          )}
+                        </View>
+                      );
+                    })}
+                    {prayerGroupPosts.length === 0 && <Text style={styles.empty}>No posts shared in this group yet. Be the first!</Text>}
                   </View>
-                ))}
-                {prayerGroups.length === 0 && <Text style={styles.empty}>No active prayer groups found.</Text>}
+                ) : (
+                  <View>
+                    {prayerGroups.map(pg => (
+                      <View key={pg.id} style={styles.planCard}>
+                        <Text style={styles.planTitle}>⭕ {pg.name}</Text>
+                        <Text style={styles.planDesc}>{pg.description || 'No description provided.'}</Text>
+                        <Text style={{color: Colors.gold, fontSize: 12, marginVertical: 6, fontWeight: 'bold'}}>Leader: {pg.leader_name} • Members: {pg.member_count}</Text>
+                        {pg.is_joined ? (
+                          <TouchableOpacity style={[styles.saveBtn, {paddingVertical: 8, marginTop: 5, backgroundColor: 'rgba(255,255,255,0.08)'}]} onPress={() => handleOpenFeed(pg)}>
+                            <Text style={[styles.saveBtnText, {color: Colors.text}]}>Open Feed 💬</Text>
+                          </TouchableOpacity>
+                        ) : (
+                          <TouchableOpacity style={[styles.saveBtn, {paddingVertical: 8, marginTop: 5}]} onPress={() => handleJoinPrayerGroup(pg.id)}>
+                            <Text style={styles.saveBtnText}>Join Group</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    ))}
+                    {prayerGroups.length === 0 && <Text style={styles.empty}>No active prayer groups found.</Text>}
+                  </View>
+                )}
               </View>
             )}
 

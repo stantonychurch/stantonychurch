@@ -66,6 +66,23 @@ const T = {
 const t = (key) => (T[currentLang] || T.en)[key] || key;
 
 // ─── Utility Functions ───────────────────────────────
+function resolveUrl(path) {
+  if (!path) return '';
+  if (path.includes('http://') || path.includes('https://')) {
+    const idx = path.indexOf('http');
+    return path.substring(idx);
+  }
+  let cleanPath = path;
+  while (cleanPath.startsWith('/') || cleanPath.startsWith('uploads/')) {
+    if (cleanPath.startsWith('/')) {
+      cleanPath = cleanPath.substring(1);
+    } else {
+      cleanPath = cleanPath.substring(8);
+    }
+  }
+  return `/uploads/${cleanPath}`;
+}
+
 function showPage(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const el = document.getElementById(`page-${id}`);
@@ -434,9 +451,16 @@ async function api(method, path, body, isFormData = false) {
       return await handleMockAPI(method, path, body);
     }
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Request failed');
+    if (!res.ok) {
+      const err = new Error(data.error || 'Request failed');
+      err.status = res.status;
+      throw err;
+    }
     return data;
   } catch (err) {
+    if (path.includes('/auth/') || (err.status && err.status !== 404)) {
+      throw err;
+    }
     console.warn("Backend request failed, falling back to client-side localStorage database:", err);
     return await handleMockAPI(method, path, body);
   }
@@ -930,10 +954,10 @@ function openVideo(id, videos) {
     if (embed) {
       player.innerHTML = `<iframe src="${embed}" frameborder="0" allowfullscreen allow="autoplay; encrypted-media"></iframe>`;
     } else {
-      player.innerHTML = `<video controls autoplay src="${v.url}"></video>`;
+      player.innerHTML = `<video controls autoplay src="${resolveUrl(v.url)}"></video>`;
     }
   } else if (v.filename) {
-    player.innerHTML = `<video controls autoplay src="/uploads/${v.filename}"></video>`;
+    player.innerHTML = `<video controls autoplay src="${resolveUrl(v.filename)}"></video>`;
   }
 
   modal.classList.remove('hidden');
@@ -961,7 +985,7 @@ function audioCardHTML(a) {
     <div class="audio-card-info" style="flex:1;">
       <div class="audio-card-title">${a.title}</div>
       <div class="audio-card-pastor">🎤 ${a.pastor || 'Unknown'} · ${timeAgo(a.created_at)}</div>
-      ${a.filename ? `<div class="audio-player-wrapper" style="margin-top:0.5rem;"><audio controls src="/uploads/${a.filename}" onplay="logHistory('listened','audio',${a.id},'${a.title.replace(/'/g,"\\'")}')"></audio></div>` : ''}
+      ${a.filename ? `<div class="audio-player-wrapper" style="margin-top:0.5rem;"><audio controls src="${resolveUrl(a.filename)}" onplay="logHistory('listened','audio',${a.id},'${a.title.replace(/'/g,"\\'")}')"></audio></div>` : ''}
     </div>
   </div>`;
 }

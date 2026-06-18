@@ -42,14 +42,11 @@ export default function VideosScreen() {
   const filteredItems = category === 'All' ? items : items.filter(i => i.category === category);
 
   function renderVideoPlayer(item) {
-    if (item.url && (item.url.includes('youtube.com') || item.url.includes('youtu.be'))) {
-      let videoId = '';
-      if (item.url.includes('youtu.be/')) {
-        videoId = item.url.split('youtu.be/')[1]?.split('?')[0];
-      } else if (item.url.includes('v=')) {
-        videoId = item.url.split('v=')[1]?.split('&')[0];
-      }
-      const embedUrl = `https://www.youtube.com/embed/${videoId}`;
+    if (item.url && (item.url.includes('youtube.com') || item.url.includes('youtu.be') || item.url.includes('youtube-nocookie.com'))) {
+      const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/ ]{11})/;
+      const match = item.url.match(regex);
+      const videoId = match ? match[1] : '';
+      const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
       return (
         <View style={styles.videoContainer}>
           <WebView

@@ -19,8 +19,8 @@ router.post('/', authenticateToken, async (req, res) => {
         const { request, category, is_anonymous, is_emergency } = req.body;
         if (!request) return res.status(400).json({ error: 'Prayer request text is required.' });
         const [result] = await db.query(
-            'INSERT INTO prayer_requests (member_id, member_name, request, category, is_anonymous, is_emergency) VALUES (?, ?, ?, ?, ?, ?)',
-            [req.user.id, req.user.name, request, category || 'General', is_anonymous ? 1 : 0, is_emergency ? 1 : 0]
+            'INSERT INTO prayer_requests (member_id, member_name, request, request_text, category, is_anonymous, is_emergency) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [req.user.id, req.user.name, request, request, category || 'General', is_anonymous ? 1 : 0, is_emergency ? 1 : 0]
         );
         res.json({ id: result.insertId, message: 'Prayer request submitted. The church is praying for you! 🙏' });
     } catch (err) { res.status(500).json({ error: err.message }); }

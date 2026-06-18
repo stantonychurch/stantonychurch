@@ -7,8 +7,14 @@ const { uploadToFirebase } = require('../services/firebase');
 const fs = require('fs');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
+const storage = multer.diskStorage({
+    destination: './uploads/',
+    filename: (req, file, cb) => {
+        cb(null, `gal_${Date.now()}_${Math.random().toString(36).substring(7)}${path.extname(file.originalname)}`);
+    }
+});
 const upload = multer({
-    dest: './uploads/',
+    storage,
     limits: { fileSize: 10 * 1024 * 1024 * 1024 } // 10 GB
 });
 
@@ -197,10 +203,15 @@ router.delete('/courses/:id', authenticateToken, requireAdmin, async (req, res) 
 // ─── Prayer Extended ─────────────────────────────────
 router.get('/prayer-groups', authenticateToken, async (req, res) => {
     const groups = await crud('prayer_groups').list();
-    const withCount = await Promise.all(groups.map(async g => ({
-        ...g,
-        member_count: (await db.query('SELECT COUNT(*) as c FROM prayer_group_members WHERE group_id = ?', [g.id]))[0][0].c
-    })));
+    const withCount = await Promise.all(groups.map(async g => {
+        const memberCount = (await db.query('SELECT COUNT(*) as c FROM prayer_group_members WHERE group_id = ?', [g.id]))[0][0].c;
+        const joinedCheck = (await db.query('SELECT 1 FROM prayer_group_members WHERE group_id = ? AND member_id = ?', [g.id, req.user.id]))[0][0];
+        return {
+            ...g,
+            member_count: memberCount,
+            is_joined: !!joinedCheck
+        };
+    }));
     res.json(withCount);
 });
 router.post('/prayer-groups', authenticateToken, requireAdmin, async (req, res) => {
@@ -211,6 +222,85 @@ router.post('/prayer-groups', authenticateToken, requireAdmin, async (req, res) 
 router.post('/prayer-groups/:id/join', authenticateToken, async (req, res) => {
     (await db.query('INSERT IGNORE INTO prayer_group_members (group_id, member_id) VALUES (?, ?)', [req.params.id, req.user.id]))[0];
     res.json({ message: 'Joined prayer group!' });
+});
+router.get('/prayer-groups/:id/posts', authenticateToken, async (req, res) => {
+    const isAdmin = req.user.role === 'admin';
+    if (!isAdmin) {
+        const check = (await db.query('SELECT 1 FROM prayer_group_members WHERE group_id = ? AND member_id = ?', [req.params.id, req.user.id]))[0][0];
+        if (!check) return res.status(403).json({ error: 'Not a member of this prayer group.' });
+    }
+    const posts = (await db.query(`
+        SELECT p.*, COALESCE(p.member_name, m.name) as member_name 
+        FROM prayer_group_posts p 
+        LEFT JOIN members m ON p.member_id = m.id 
+        WHERE p.group_id = ? 
+        ORDER BY p.created_at DESC
+    `, [req.params.id]))[0];
+    res.json(posts);
+});
+router.post('/prayer-groups/:id/posts', authenticateToken, upload.single('file'), async (req, res) => {
+    try {
+        const { content } = req.body;
+        const groupId = req.params.id;
+        const isAdmin = req.user.role === 'admin';
+        if (!isAdmin) {
+            const check = (await db.query('SELECT 1 FROM prayer_group_members WHERE group_id = ? AND member_id = ?', [groupId, req.user.id]))[0][0];
+            if (!check) return res.status(403).json({ error: 'Not a member of this prayer group.' });
+        }
+        
+        let media_url = null;
+        let media_type = null;
+        if (req.file) {
+            media_type = req.file.mimetype.startsWith('video') ? 'video' : req.file.mimetype.startsWith('audio') ? 'audio' : 'image';
+            try {
+                const buffer = fs.readFileSync(req.file.path);
+                media_url = await uploadToFirebase(buffer, req.file.originalname, req.file.mimetype);
+                fs.unlinkSync(req.file.path);
+            } catch (e) {
+                console.error("Firebase upload failed:", e);
+                media_url = `/uploads/${req.file.filename}`;
+            }
+        }
+        
+        const r = (await db.query(
+            'INSERT INTO prayer_group_posts (group_id, member_id, member_name, content, media_url, media_type) VALUES (?, ?, ?, ?, ?, ?)',
+            [groupId, req.user.id, req.user.name, content || '', media_url, media_type]
+        ))[0];
+        res.json({ id: r.insertId, message: 'Post created successfully.' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+router.put('/prayer-groups/posts/:id', authenticateToken, async (req, res) => {
+    try {
+        const { content } = req.body;
+        const post = (await db.query('SELECT * FROM prayer_group_posts WHERE id = ?', [req.params.id]))[0][0];
+        if (!post) return res.status(404).json({ error: 'Post not found.' });
+        
+        if (req.user.role !== 'admin' && post.member_id !== req.user.id) {
+            return res.status(403).json({ error: 'Forbidden.' });
+        }
+        
+        await db.query('UPDATE prayer_group_posts SET content = ? WHERE id = ?', [content || '', req.params.id]);
+        res.json({ message: 'Post updated successfully.' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+router.delete('/prayer-groups/posts/:id', authenticateToken, async (req, res) => {
+    try {
+        const post = (await db.query('SELECT * FROM prayer_group_posts WHERE id = ?', [req.params.id]))[0][0];
+        if (!post) return res.status(404).json({ error: 'Post not found.' });
+        
+        if (req.user.role !== 'admin' && post.member_id !== req.user.id) {
+            return res.status(403).json({ error: 'Forbidden.' });
+        }
+        
+        await db.query('DELETE FROM prayer_group_posts WHERE id = ?', [req.params.id]);
+        res.json({ message: 'Post deleted successfully.' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 router.get('/prayer-reminders/:memberId', authenticateToken, async (req, res) => {
     res.json((await db.query('SELECT * FROM prayer_reminders WHERE member_id = ?', [req.params.memberId]))[0]);
@@ -314,6 +404,14 @@ router.post('/service-schedules', authenticateToken, requireAdmin, async (req, r
     const { day_of_week, service_time, service_type, location, description, stream_url } = req.body;
     const r = (await db.query('INSERT INTO service_schedules (day_of_week, service_time, service_type, location, description, stream_url) VALUES (?, ?, ?, ?, ?, ?)', [day_of_week, service_time, service_type || 'Service', location || '', description || '', stream_url || '']))[0];
     res.json({ id: r.insertId });
+});
+router.delete('/service-schedules/:id', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        await db.query('DELETE FROM service_schedules WHERE id = ?', [req.params.id]);
+        res.json({ message: 'Service schedule deleted successfully.' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 router.post('/events/:id/register', authenticateToken, async (req, res) => {
     (await db.query('INSERT IGNORE INTO event_registrations (event_id, member_id) VALUES (?, ?)', [req.params.id, req.user.id]))[0];
@@ -817,7 +915,10 @@ router.post('/prayer/create', authenticateToken, async (req, res) => {
     const { request_text, is_public } = req.body;
     if (!request_text) return res.status(400).json({ error: 'Prayer request cannot be empty.' });
     
-    const result = (await db.query('INSERT INTO prayer_requests (member_id, request_text, is_public) VALUES (?, ?, ?)', [req.user.id, request_text, is_public ? 1 : 0]))[0];
+    const result = (await db.query(
+        'INSERT INTO prayer_requests (member_id, member_name, request, request_text, is_public) VALUES (?, ?, ?, ?, ?)',
+        [req.user.id, req.user.name, request_text, request_text, is_public ? 1 : 0]
+    ))[0];
     res.json({ message: 'Prayer request submitted successfully.', id: result.insertId });
 });
 

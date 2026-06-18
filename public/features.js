@@ -72,7 +72,7 @@ ExtendedFeatures.podcasts = async function() {
       <div class="audio-card-item">
         <div class="ac-icon">🎙️</div>
         <div class="ac-info"><div class="ac-title">${p.title}</div><div class="ac-meta">${p.pastor || 'Podcast'} · ${p.language}</div><p>${p.description || ''}</p></div>
-        ${p.url || p.filename ? `<audio controls src="${p.url || '/uploads/' + p.filename}" style="width:100%;margin-top:.5rem;"></audio>` : ''}
+        ${p.url || p.filename ? `<audio controls src="${resolveUrl(p.url || p.filename)}" style="width:100%;margin-top:.5rem;"></audio>` : ''}
       </div>`);
   } catch (e) { document.getElementById('pod-list').innerHTML = `<div class="empty-state">${e.message}</div>`; }
 };
@@ -237,7 +237,7 @@ ExtendedFeatures.choir = async function() {
   const items = await pf('GET', '/choir-materials');
   document.getElementById('choir-list').innerHTML = listCards(items, c => `
     <div class="feature-card"><h3>${c.title}</h3><p>${c.description || ''}</p>
-    ${c.url ? `<a href="${c.url}" target="_blank" class="btn-feature small">Download / View</a>` : c.filename ? `<a href="/uploads/${c.filename}" class="btn-feature small">Download</a>` : ''}</div>`);
+    ${c.url || c.filename ? `<a href="${resolveUrl(c.url || c.filename)}" target="_blank" class="btn-feature small">Download / View</a>` : ''}</div>`);
 };
 
 // ─── Song Requests ─────────────────────────────────────

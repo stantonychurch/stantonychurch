@@ -1089,10 +1089,11 @@ window.loadFCData = async () => {
       pgList.innerHTML = '<div class="empty-state">No prayer groups created.</div>';
     } else {
       pgList.innerHTML = groups.map(g => `
-        <div style="background:var(--surface); padding:1rem; border-radius:8px; margin-bottom:1rem; border-left:4px solid var(--gold);">
+        <div class="card card-hover" style="background:var(--surface); padding:1rem; border-radius:8px; margin-bottom:1rem; border-left:4px solid var(--gold); cursor:pointer;" onclick="openAdminPrayerGroupFeed(${g.id}, '${g.name.replace(/'/g, "\\'")}')">
           <strong>${g.name}</strong>
           <p style="margin:0;font-size:0.85rem;color:var(--text-light);">${g.description}</p>
           <span style="font-size:0.75rem;color:var(--text-light);">Leader: ${g.leader_name} | Members: ${g.member_count || 0}</span>
+          <div style="font-size:0.8rem; color:var(--gold); margin-top:0.5rem; text-decoration:underline;">Moderate Feed →</div>
         </div>`).join('');
     }
   } catch (err) { pgList.innerHTML = `<div class="error-state">${err.message}</div>`; }
@@ -1141,6 +1142,89 @@ window.fcAddChallenge = async () => {
     document.getElementById('fc-chal-date').value = '';
     loadFCData();
   } catch (err) { showToast(err.message, 'error'); }
+};
+
+window.openAdminPrayerGroupFeed = async (id, name) => {
+  let modal = document.getElementById('admin-pg-feed-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.id = 'admin-pg-feed-modal';
+    document.body.appendChild(modal);
+  }
+  
+  modal.innerHTML = `
+    <div class="modal-backdrop" onclick="document.getElementById('admin-pg-feed-modal').remove()"></div>
+    <div class="modal-content" style="max-width:680px; padding:2rem; max-height:80vh; overflow-y:auto; position:relative; background: var(--bg); border: 1px solid var(--glass-border); border-radius: 12px; color: var(--text);">
+      <button class="modal-close" onclick="document.getElementById('admin-pg-feed-modal').remove()" style="position:absolute; right:15px; top:15px; background:none; border:none; color:var(--text); font-size:1.2rem; cursor:pointer;">✕</button>
+      <h2 style="font-family:'Playfair Display',serif; font-size:1.5rem; margin-bottom:1rem; color:var(--gold);">👥 ${name} — Moderation Feed</h2>
+      <div id="admin-pg-posts-list"><div class="loading-state">Loading posts...</div></div>
+    </div>`;
+  modal.classList.remove('hidden');
+  
+  await loadAdminPrayerGroupPosts(id);
+};
+
+window.loadAdminPrayerGroupPosts = async (id) => {
+  const container = document.getElementById('admin-pg-posts-list');
+  if (!container) return;
+  try {
+    const posts = await api('GET', `/platform/prayer-groups/${id}/posts`);
+    if (posts.length === 0) {
+      container.innerHTML = '<div class="empty-state">No posts in this prayer group yet.</div>';
+      return;
+    }
+    container.innerHTML = posts.map(p => {
+      let mediaHtml = '';
+      if (p.media_url) {
+        if (p.media_type === 'video') {
+          mediaHtml = `<video src="${p.media_url}" controls style="max-width:100%; max-height:180px; border-radius:6px; margin-top:0.5rem; background:#000;"></video>`;
+        } else {
+          mediaHtml = `<img src="${p.media_url}" style="max-width:100%; max-height:180px; object-fit:contain; border-radius:6px; margin-top:0.5rem;">`;
+        }
+      }
+      return `
+        <div style="background:var(--surface); padding:1rem; border-radius:8px; margin-bottom:0.8rem; border:1px solid rgba(255,255,255,0.05); position:relative;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div>
+              <strong>${p.member_name || 'Member'}</strong>
+              <span style="font-size:0.75rem; color:var(--text-light); margin-left:8px;">${timeAgo(p.created_at)}</span>
+            </div>
+            <div style="display:flex; gap:0.5rem;">
+              <button class="btn-icon" style="color:var(--gold); font-size:0.8rem;" onclick="editAdminPrayerGroupPost(${p.id}, ${id}, '${(p.content || '').replace(/'/g, "\\'")}')">✏️ Edit</button>
+              <button class="btn-icon" style="color:#d32f2f; font-size:0.8rem;" onclick="deleteAdminPrayerGroupPost(${p.id}, ${id})">🗑️ Delete</button>
+            </div>
+          </div>
+          <p id="admin-pg-post-content-${p.id}" style="margin:0.5rem 0 0 0; white-space:pre-wrap;">${p.content || ''}</p>
+          ${mediaHtml}
+        </div>`;
+    }).join('');
+  } catch (err) {
+    container.innerHTML = `<div class="error-state">${err.message}</div>`;
+  }
+};
+
+window.editAdminPrayerGroupPost = async (id, groupId, currentContent) => {
+  const newContent = prompt("Edit post content:", currentContent);
+  if (newContent === null) return;
+  try {
+    await api('PUT', `/platform/prayer-groups/posts/${id}`, { content: newContent });
+    showToast('Post updated successfully!', 'success');
+    loadAdminPrayerGroupPosts(groupId);
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+};
+
+window.deleteAdminPrayerGroupPost = async (id, groupId) => {
+  if (!confirm('Delete this post permanently for moderation?')) return;
+  try {
+    await api('DELETE', `/platform/prayer-groups/posts/${id}`);
+    showToast('Post deleted', 'success');
+    loadAdminPrayerGroupPosts(groupId);
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
 };
 
 document.addEventListener('DOMContentLoaded', () => {

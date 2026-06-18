@@ -2,8 +2,11 @@ import React, { useEffect, useState, useContext } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, TextInput, Alert, ActivityIndicator, Image } from 'react-native';
 import { Colors, Spacing, Radius } from '../../src/config/theme';
 import { getPlatform, postPlatform } from '../../src/services/api';
+import { API_BASE_URL } from '../../src/config/api';
 import { Video, ResizeMode } from 'expo-av';
 import { DrawerContext } from './_layout';
+
+const SERVER_URL = API_BASE_URL.replace('/api', '');
 import { useLanguage } from '../../src/context/LanguageContext';
 
 export default function YouthScreen() {
@@ -120,12 +123,12 @@ export default function YouthScreen() {
                     {a.content ? <Text style={styles.cardContent}>{a.content}</Text> : null}
                     
                     {a.media_type === 'image' && (
-                      <Image source={{ uri: a.media_url.startsWith('http') ? a.media_url : `http://192.168.236.171:3000${a.media_url}` }} style={styles.mediaImage} />
+                      <Image source={{ uri: a.media_url.startsWith('http') ? a.media_url : `${SERVER_URL}${a.media_url}` }} style={styles.mediaImage} />
                     )}
                     {a.media_type === 'video' && (
                       <Video
                         style={styles.mediaVideo}
-                        source={{ uri: a.media_url.startsWith('http') ? a.media_url : `http://192.168.236.171:3000${a.media_url}` }}
+                        source={{ uri: a.media_url.startsWith('http') ? a.media_url : `${SERVER_URL}${a.media_url}` }}
                         useNativeControls
                         resizeMode={ResizeMode.CONTAIN}
                       />
@@ -133,7 +136,7 @@ export default function YouthScreen() {
                     {a.media_type === 'audio' && (
                       <Video
                         style={styles.mediaAudio}
-                        source={{ uri: a.media_url.startsWith('http') ? a.media_url : `http://192.168.236.171:3000${a.media_url}` }}
+                        source={{ uri: a.media_url.startsWith('http') ? a.media_url : `${SERVER_URL}${a.media_url}` }}
                         useNativeControls
                         resizeMode={ResizeMode.CONTAIN}
                       />

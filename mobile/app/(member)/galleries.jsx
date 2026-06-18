@@ -4,8 +4,11 @@ import { useLanguage } from '../../src/context/LanguageContext';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Image, TextInput } from 'react-native';
 import { Colors, Spacing, Radius } from '../../src/config/theme';
 import apiClient from '../../src/services/api';
+import { API_BASE_URL } from '../../src/config/api';
 import SocialBar from '../../src/components/SocialBar';
 import { Video, ResizeMode } from 'expo-av';
+
+const SERVER_URL = API_BASE_URL.replace('/api', '');
 
 export default function GalleriesScreen() {
   const { toggleDrawer } = useContext(DrawerContext);
@@ -83,11 +86,11 @@ export default function GalleriesScreen() {
               {media.map(m => (
                 <View key={m.id} style={styles.postCard}>
                   {/* Media Content */}
-                  {m.media_type === 'image' && <Image source={{ uri: m.url.startsWith('http') ? m.url : `http://192.168.236.171:3000${m.url}` }} style={styles.postImage} />}
+                  {m.media_type === 'image' && <Image source={{ uri: m.url.startsWith('http') ? m.url : `${SERVER_URL}${m.url}` }} style={styles.postImage} />}
                   {m.media_type === 'video' && (
                     <Video
                       style={styles.videoPlayer}
-                      source={{ uri: m.url.startsWith('http') ? m.url : `http://192.168.236.171:3000${m.url}` }}
+                      source={{ uri: m.url.startsWith('http') ? m.url : `${SERVER_URL}${m.url}` }}
                       useNativeControls
                       resizeMode={ResizeMode.CONTAIN}
                       isLooping
@@ -96,7 +99,7 @@ export default function GalleriesScreen() {
                   {m.media_type === 'audio' && (
                     <Video
                       style={styles.audioPlayer}
-                      source={{ uri: m.url.startsWith('http') ? m.url : `http://192.168.236.171:3000${m.url}` }}
+                      source={{ uri: m.url.startsWith('http') ? m.url : `${SERVER_URL}${m.url}` }}
                       useNativeControls
                       resizeMode={ResizeMode.CONTAIN}
                     />

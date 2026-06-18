@@ -32,6 +32,7 @@ async function initDatabase() {
                 password_hash VARCHAR(255) NOT NULL,
                 language VARCHAR(10) DEFAULT 'en',
                 status VARCHAR(20) DEFAULT 'approved',
+                email VARCHAR(255),
                 bio TEXT,
                 birthday VARCHAR(50),
                 profile_visible TINYINT(1) DEFAULT 1,
@@ -94,6 +95,8 @@ async function initDatabase() {
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 title VARCHAR(255) NOT NULL,
                 content TEXT NOT NULL,
+                title_tamil VARCHAR(255),
+                content_tamil TEXT,
                 scripture TEXT,
                 scripture_reference VARCHAR(255),
                 prayer TEXT,
@@ -125,6 +128,8 @@ async function initDatabase() {
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 title VARCHAR(255) NOT NULL,
                 content TEXT NOT NULL,
+                title_tamil TEXT,
+                content_tamil TEXT,
                 type VARCHAR(100) DEFAULT 'General',
                 is_emergency BOOLEAN DEFAULT 0,
                 added_by VARCHAR(100),
@@ -303,6 +308,28 @@ async function initDatabase() {
             await db.query('INSERT INTO admins (name, password_hash) VALUES (?, ?)', ['admin', hash]);
             console.log('✅ Default admin seeded');
         }
+
+        // Alter tables to safely add missing columns if they don't exist
+        try {
+            await db.query('ALTER TABLE members ADD COLUMN email VARCHAR(255)');
+            console.log('✅ Added email column to members');
+        } catch (err) {}
+        try {
+            await db.query('ALTER TABLE announcements ADD COLUMN title_tamil TEXT');
+            console.log('✅ Added title_tamil column to announcements');
+        } catch (err) {}
+        try {
+            await db.query('ALTER TABLE announcements ADD COLUMN content_tamil TEXT');
+            console.log('✅ Added content_tamil column to announcements');
+        } catch (err) {}
+        try {
+            await db.query('ALTER TABLE devotionals ADD COLUMN title_tamil VARCHAR(255)');
+            console.log('✅ Added title_tamil column to devotionals');
+        } catch (err) {}
+        try {
+            await db.query('ALTER TABLE devotionals ADD COLUMN content_tamil TEXT');
+            console.log('✅ Added content_tamil column to devotionals');
+        } catch (err) {}
 
         const { initExtendedSchema } = require('./database-ext');
         await initExtendedSchema(db);

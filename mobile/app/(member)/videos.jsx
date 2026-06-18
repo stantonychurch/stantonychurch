@@ -5,6 +5,9 @@ import { DrawerContext } from './_layout';
 import { Video, ResizeMode } from 'expo-av';
 import { WebView } from 'react-native-webview';
 import { getVideos } from '../../src/services/api';
+import { API_BASE_URL } from '../../src/config/api';
+
+const SERVER_URL = API_BASE_URL.replace('/api', '');
 import { Colors, Spacing, Radius } from '../../src/config/theme';
 import { useLanguage } from '../../src/context/LanguageContext';
 import SocialBar from '../../src/components/SocialBar';
@@ -60,7 +63,7 @@ export default function VideosScreen() {
       );
     } else {
       const videoUri = item.filename 
-        ? `http://192.168.236.171:3000/uploads/${item.filename}` 
+        ? `${SERVER_URL}/uploads/${item.filename}` 
         : item.url;
       return (
         <View style={styles.videoContainer}>

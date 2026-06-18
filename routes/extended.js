@@ -126,10 +126,10 @@ router.post('/testimonies', authenticateToken, async (req, res) => {
     res.json({ id: r.insertId, message: 'Testimony saved.' });
 });
 router.delete('/testimonies/:id', authenticateToken, async (req, res) => {
-    const t = crud('testimonies').get(req.params.id);
+    const t = await crud('testimonies').get(req.params.id);
     if (!t) return res.status(404).json({ error: 'Not found.' });
     if (req.user.role !== 'admin' && t.member_id !== req.user.id) return res.status(403).json({ error: 'Forbidden.' });
-    crud('testimonies').del(req.params.id);
+    await crud('testimonies').del(req.params.id);
     res.json({ message: 'Deleted.' });
 });
 
@@ -169,7 +169,7 @@ router.post('/courses/:id/lessons', authenticateToken, requireAdmin, async (req,
 });
 router.post('/courses/:id/progress', authenticateToken, async (req, res) => {
     const courseId = req.params.id;
-    const course = crud('courses').get(courseId);
+    const course = await crud('courses').get(courseId);
     (await db.query('INSERT IGNORE INTO member_course_progress (member_id, course_id) VALUES (?, ?)', [req.user.id, courseId]))[0];
     const prog = (await db.query('SELECT * FROM member_course_progress WHERE member_id = ? AND course_id = ?', [req.user.id, courseId]))[0][0];
     const next = (prog.completed_lessons || 0) + 1;
@@ -190,7 +190,7 @@ router.get('/certificates/:memberId', authenticateToken, async (req, res) => {
 });
 router.delete('/courses/:id', authenticateToken, requireAdmin, async (req, res) => {
     (await db.query('DELETE FROM course_lessons WHERE course_id = ?', [req.params.id]))[0];
-    crud('courses').del(req.params.id);
+    await crud('courses').del(req.params.id);
     res.json({ message: 'Deleted.' });
 });
 
@@ -254,10 +254,48 @@ router.post('/worship-playlists', authenticateToken, requireAdmin, async (req, r
     res.json({ id: r.insertId });
 });
 router.get('/choir-materials', authenticateToken, async (req, res) => res.json(await crud('choir_materials').list()));
-router.post('/choir-materials', authenticateToken, requireAdmin, upload.single('file'), async (req, res) => {
-    const { title, description, url } = req.body;
-    const r = (await db.query('INSERT INTO choir_materials (title, description, filename, url, added_by) VALUES (?, ?, ?, ?, ?)', [title, description || '', req.file?.filename || '', url || '', req.user.name]))[0];
-    res.json({ id: r.insertId });
+router.post('/choir-materials', authenticateToken, upload.single('file'), async (req, res) => {
+    try {
+        const { title, description } = req.body;
+        if (!title) return res.status(400).json({ error: 'Title is required' });
+        
+        let finalUrl = null;
+        let mediaType = 'pdf';
+        
+        if (req.file) {
+            const mime = req.file.mimetype;
+            if (mime.startsWith('image')) mediaType = 'image';
+            else if (mime.startsWith('audio')) mediaType = 'audio';
+            else if (mime.startsWith('video')) mediaType = 'video';
+            else mediaType = 'pdf';
+            
+            try {
+                const buffer = fs.readFileSync(req.file.path);
+                finalUrl = await uploadToFirebase(buffer, req.file.originalname, mime);
+                fs.unlinkSync(req.file.path);
+            } catch (e) {
+                console.error("Firebase upload failed:", e);
+                finalUrl = `/uploads/${req.file.filename}`;
+            }
+        }
+        
+        const r = (await db.query(
+            'INSERT INTO choir_materials (title, description, filename, url, media_type, added_by) VALUES (?, ?, ?, ?, ?, ?)', 
+            [title, description || '', req.file ? req.file.filename : '', finalUrl || '', mediaType, req.user.name]
+        ))[0];
+        
+        res.json({ id: r.insertId, message: 'Choir material uploaded successfully' });
+    } catch(err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+router.delete('/choir-materials/:id', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        await db.query('DELETE FROM choir_materials WHERE id = ?', [req.params.id]);
+        res.json({ message: 'Choir material deleted.' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 router.get('/song-requests', authenticateToken, async (req, res) => res.json(await crud('song_requests').list()));
 router.post('/song-requests', authenticateToken, async (req, res) => {
@@ -355,6 +393,106 @@ router.post('/bulletins', authenticateToken, requireAdmin, async (req, res) => {
     res.json({ id: r.insertId });
 });
 
+// Children Stories
+router.get('/children-stories', authenticateToken, async (req, res) => {
+    try {
+        const stories = (await db.query('SELECT * FROM children_stories ORDER BY created_at DESC'))[0];
+        res.json(stories);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+router.post('/children-stories', authenticateToken, requireAdmin, upload.single('video'), async (req, res) => {
+    try {
+        const { title, content, age_group, language, url } = req.body;
+        if (!title) return res.status(400).json({ error: 'Title is required' });
+        
+        let finalUrl = url || '';
+        let mediaType = 'text';
+        
+        if (req.file) {
+            mediaType = 'video';
+            try {
+                const buffer = fs.readFileSync(req.file.path);
+                finalUrl = await uploadToFirebase(buffer, req.file.originalname, req.file.mimetype);
+                fs.unlinkSync(req.file.path);
+            } catch (e) {
+                console.error("Firebase video upload failed:", e);
+                finalUrl = `/uploads/${req.file.filename}`;
+            }
+        } else if (finalUrl) {
+            mediaType = 'video';
+        }
+        
+        const r = (await db.query(
+            'INSERT INTO children_stories (title, content, video_url, media_type, age_group, language) VALUES (?, ?, ?, ?, ?, ?)',
+            [title, content || '', finalUrl, mediaType, age_group || 'All', language || 'en']
+        ))[0];
+        res.json({ id: r.insertId, message: 'Children story uploaded successfully!' });
+    } catch(err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+router.delete('/children-stories/:id', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        await db.query('DELETE FROM children_story_completions WHERE story_id = ?', [req.params.id]);
+        await db.query('DELETE FROM children_stories WHERE id = ?', [req.params.id]);
+        res.json({ message: 'Story deleted.' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+router.get('/children-profiles', authenticateToken, async (req, res) => {
+    try {
+        const profiles = (await db.query('SELECT * FROM children_profiles WHERE member_id = ? ORDER BY created_at DESC', [req.user.id]))[0];
+        res.json(profiles);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+router.post('/children-profiles', authenticateToken, async (req, res) => {
+    try {
+        const { child_name, dob, class_name, student_phone } = req.body;
+        if (!child_name || !dob || !class_name) {
+            return res.status(400).json({ error: 'Child name, DOB, and class are required' });
+        }
+        const r = (await db.query(
+            'INSERT INTO children_profiles (member_id, child_name, dob, class, student_phone) VALUES (?, ?, ?, ?, ?)',
+            [req.user.id, child_name.trim(), dob.trim(), class_name.trim(), student_phone ? student_phone.trim() : null]
+        ))[0];
+        res.json({ id: r.insertId, message: 'Child profile registered successfully!' });
+    } catch(err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+router.post('/children-stories/:id/complete', authenticateToken, async (req, res) => {
+    try {
+        const { child_id } = req.body;
+        if (!child_id) return res.status(400).json({ error: 'child_id is required' });
+        await db.query(
+            'INSERT IGNORE INTO children_story_completions (child_id, story_id) VALUES (?, ?)',
+            [child_id, req.params.id]
+        );
+        res.json({ message: 'Story marked as completed!' });
+    } catch(err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+router.get('/children-stories/report/completions', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const report = (await db.query(`
+            SELECT csc.id, csc.completed_at, cp.child_name, cp.class, cp.student_phone, cs.title as story_title
+            FROM children_story_completions csc
+            JOIN children_profiles cp ON csc.child_id = cp.id
+            JOIN children_stories cs ON csc.story_id = cs.id
+            ORDER BY csc.completed_at DESC
+        `))[0];
+        res.json(report);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // ─── Family ────────────────────────────────────────────
 router.get('/family-prayers', authenticateToken, async (req, res) => res.json(await crud('family_prayer_requests').list()));
 router.post('/family-prayers', authenticateToken, async (req, res) => {
@@ -368,12 +506,7 @@ router.post('/family-devotionals', authenticateToken, requireAdmin, async (req, 
     const r = (await db.query('INSERT INTO family_devotional_plans (title, content, duration_days, language) VALUES (?, ?, ?, ?)', [title, content, duration_days || 7, language || 'en']))[0];
     res.json({ id: r.insertId });
 });
-router.get('/children-stories', authenticateToken, async (req, res) => res.json(await crud('children_stories').list()));
-router.post('/children-stories', authenticateToken, requireAdmin, async (req, res) => {
-    const { title, content, age_group, language } = req.body;
-    const r = (await db.query('INSERT INTO children_stories (title, content, age_group, language) VALUES (?, ?, ?, ?)', [title, content, age_group || 'All', language || 'en']))[0];
-    res.json({ id: r.insertId });
-});
+
 router.get('/youth-corner', authenticateToken, async (req, res) => res.json(await crud('youth_corner').list()));
 router.post('/youth-corner', authenticateToken, requireAdmin, async (req, res) => {
     const { title, content, category, language } = req.body;
@@ -730,33 +863,17 @@ router.post('/prayer/:id/reply', authenticateToken, requireAdmin, async (req, re
     res.json({ message: 'Reply sent successfully.' });
 });
 
-// ─── Youth Groups ──────────────────────────────────────────────
-router.post('/youth/create', authenticateToken, requireAdmin, async (req, res) => {
-    const { group_name } = req.body;
-    if (!group_name) return res.status(400).json({ error: 'Group name required' });
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let qr_code_id = '';
-    for (let i = 0; i < 6; i++) qr_code_id += chars.charAt(Math.floor(Math.random() * chars.length));
-    const r = (await db.query('INSERT INTO youth_connections (qr_code_id, group_name) VALUES (?, ?)', [qr_code_id, group_name]))[0];
-    res.json({ id: r.insertId, qr_code_id, message: 'Youth group created.' });
-});
-
-router.post('/youth/join', authenticateToken, async (req, res) => {
-    const { qr_code_id } = req.body;
-    if (!qr_code_id) return res.status(400).json({ error: 'Invite Code is required.' });
-    const cleanCode = qr_code_id.trim().toUpperCase();
-    const group = (await db.query('SELECT id FROM youth_connections WHERE qr_code_id = ?', [cleanCode]))[0][0];
-    if (!group) return res.status(404).json({ error: 'Invalid Invite code.' });
-    (await db.query('INSERT IGNORE INTO youth_members (youth_group_id, member_id, status) VALUES (?, ?, ?)', [group.id, req.user.id, 'approved']))[0];
-    res.json({ message: 'Joined youth group successfully.', id: group.id });
-});
-
 router.get('/youth/all', authenticateToken, requireAdmin, async (req, res) => {
     res.json((await db.query('SELECT * FROM youth_connections ORDER BY created_at DESC', []))[0]);
 });
 
 router.get('/youth/my', authenticateToken, async (req, res) => {
-    const groups = (await db.query(`SELECT y.* FROM youth_connections y JOIN youth_members ym ON y.id = ym.youth_group_id WHERE ym.member_id = ?`, [req.user.id]))[0];
+    const groups = (await db.query(`
+        SELECT y.*, ym.status, ym.joined_at 
+        FROM youth_connections y 
+        JOIN youth_members ym ON y.id = ym.youth_group_id 
+        WHERE ym.member_id = ?
+    `, [req.user.id]))[0];
     res.json(groups);
 });
 

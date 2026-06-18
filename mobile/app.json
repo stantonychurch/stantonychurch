@@ -20,7 +20,10 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1a1209"
       },
-      "package": "com.stantony.church"
+      "package": "com.stantony.church",
+      "permissions": [
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -39,6 +42,13 @@
     "experiments": {
       "typedRoutes": true
     },
-    "scheme": "stantony"
+    "scheme": "stantony",
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "dc51d9b4-ed5b-4b4d-9670-64d104b958a4"
+      }
+    },
+    "owner": "yeswanthraj_003"
   }
 }

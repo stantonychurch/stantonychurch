@@ -1,10 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, TextInput, Alert, ActivityIndicator, Image } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Colors, Spacing, Radius } from '../../../src/config/theme';
 import apiClient from '../../../src/services/api';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLanguage } from '../../../src/context/LanguageContext';
+import * as DocumentPicker from 'expo-document-picker';
+import { Video, ResizeMode } from 'expo-av';
+import { API_BASE_URL } from '../../../src/config/api';
+
+const SERVER_URL = API_BASE_URL.replace('/api', '');
 
 export default function FamilyDashboardScreen() {
   const { id } = useLocalSearchParams();
@@ -16,6 +21,8 @@ export default function FamilyDashboardScreen() {
   const [history, setHistory] = useState([]);
   const [posts, setPosts] = useState([]);
   const [newPost, setNewPost] = useState('');
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [submittingPost, setSubmittingPost] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -39,13 +46,29 @@ export default function FamilyDashboardScreen() {
   }
 
   async function submitPost() {
-    if (!newPost.trim()) return;
+    if (!newPost.trim() && !selectedFile) return;
+    setSubmittingPost(true);
     try {
-      await apiClient.post(`/platform/family/${id}/post`, { content: newPost });
+      const formData = new FormData();
+      if (newPost.trim()) formData.append('content', newPost.trim());
+      if (selectedFile) {
+        formData.append('media', {
+          uri: selectedFile.uri,
+          name: selectedFile.name,
+          type: selectedFile.mimeType || 'application/octet-stream'
+        });
+      }
+      await apiClient.post(`/platform/family/${id}/post`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 600000
+      });
       setNewPost('');
+      setSelectedFile(null);
       loadData();
     } catch (e) {
       Alert.alert(t('error'), t('failed_to_post'));
+    } finally {
+      setSubmittingPost(false);
     }
   }
 
@@ -85,7 +108,7 @@ export default function FamilyDashboardScreen() {
               <Text style={styles.statLabel}>{t('completed')}</Text>
             </View>
             <View style={styles.statBox}>
-              <Text style={styles.statVal}>{stats?.prayer_hours ? stats.prayer_hours.toFixed(1) : '0.0'}</Text>
+              <Text style={styles.statVal}>{stats?.prayer_hours ? Number(stats.prayer_hours).toFixed(1) : '0.0'}</Text>
               <Text style={styles.statLabel}>{t('hours')}</Text>
             </View>
             <View style={styles.statBox}>
@@ -123,9 +146,38 @@ export default function FamilyDashboardScreen() {
             value={newPost}
             onChangeText={setNewPost}
           />
-          <TouchableOpacity style={styles.postBtn} onPress={submitPost}>
-            <Text style={styles.postBtnText}>{t('post')}</Text>
-          </TouchableOpacity>
+          
+          <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10}}>
+            <TouchableOpacity 
+              style={[{paddingHorizontal: 12, paddingVertical: 8, borderRadius: Radius.sm}, selectedFile ? {backgroundColor: Colors.gold} : {backgroundColor: 'rgba(255,255,255,0.06)'}]} 
+              onPress={async () => {
+                try {
+                  const res = await DocumentPicker.getDocumentAsync({ type: '*/*' });
+                  if (!res.canceled && res.assets && res.assets.length > 0) {
+                    setSelectedFile(res.assets[0]);
+                  }
+                } catch(e) { console.log(e); }
+              }}
+            >
+              <Text style={{color: selectedFile ? '#000' : Colors.text, fontSize: 12, fontWeight: 'bold'}}>
+                {selectedFile ? `Selected: ${selectedFile.name.substring(0, 15)}...` : '📎 Attach Photo/Video'}
+              </Text>
+            </TouchableOpacity>
+
+            {selectedFile && (
+              <TouchableOpacity onPress={() => setSelectedFile(null)} style={{marginRight: 10}}>
+                <Text style={{color: Colors.error, fontSize: 12, fontWeight: 'bold'}}>Clear</Text>
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity 
+              style={[styles.postBtn, submittingPost && {opacity: 0.6}]} 
+              onPress={submitPost}
+              disabled={submittingPost}
+            >
+              {submittingPost ? <ActivityIndicator size="small" color="#000" /> : <Text style={styles.postBtnText}>{t('post')}</Text>}
+            </TouchableOpacity>
+          </View>
         </View>
 
         {posts.map(p => (
@@ -134,8 +186,31 @@ export default function FamilyDashboardScreen() {
               <Text style={styles.postAuthor}>{p.member_name}</Text>
               <Text style={styles.postTime}>{new Date(p.created_at).toLocaleDateString()}</Text>
             </View>
-            <Text style={styles.postContent}>{p.content}</Text>
-            {/* If it's a link to a video/audio, we could render a link here */}
+            {p.content ? <Text style={styles.postContent}>{p.content}</Text> : null}
+            
+            {p.media_url ? (
+              p.media_type === 'image' ? (
+                <Image 
+                  source={{ uri: p.media_url.startsWith('http') ? p.media_url : `${SERVER_URL}${p.media_url}` }} 
+                  style={{ width: '100%', height: 200, borderRadius: 8, marginTop: 10, backgroundColor: Colors.dark }}
+                  resizeMode="cover"
+                />
+              ) : p.media_type === 'video' ? (
+                <Video
+                  style={{ width: '100%', height: 200, borderRadius: 8, marginTop: 10 }}
+                  source={{ uri: p.media_url.startsWith('http') ? p.media_url : `${SERVER_URL}${p.media_url}` }}
+                  useNativeControls
+                  resizeMode={ResizeMode.CONTAIN}
+                />
+              ) : p.media_type === 'audio' ? (
+                <Video
+                  style={{ width: '100%', height: 50, borderRadius: 8, marginTop: 10, backgroundColor: '#000' }}
+                  source={{ uri: p.media_url.startsWith('http') ? p.media_url : `${SERVER_URL}${p.media_url}` }}
+                  useNativeControls
+                  resizeMode={ResizeMode.CONTAIN}
+                />
+              ) : null
+            ) : null}
           </View>
         ))}
 

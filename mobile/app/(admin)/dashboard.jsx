@@ -1,9 +1,12 @@
 import { useEffect, useState, useRef } from 'react';
-import { View, Text, ScrollView, StyleSheet, SafeAreaView, TouchableOpacity, ActivityIndicator, RefreshControl, TextInput, Alert, Animated, useWindowDimensions, Switch } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, SafeAreaView, TouchableOpacity, ActivityIndicator, RefreshControl, TextInput, Alert, Animated, useWindowDimensions, Switch, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../src/context/AuthContext';
 import apiClient, { getPlatform, postPlatform } from '../../src/services/api';
+import { API_BASE_URL } from '../../src/config/api';
 import { Colors, Spacing, Radius } from '../../src/config/theme';
+
+const SERVER_URL = API_BASE_URL.replace('/api', '');
 import { LinearGradient } from 'expo-linear-gradient';
 import * as DocumentPicker from 'expo-document-picker';
 
@@ -108,6 +111,19 @@ export default function AdminDashboardScreen() {
   const [youthGroupForm, setYouthGroupForm] = useState({ group_name: '' });
   const [youthMessage, setYouthMessage] = useState({});
 
+  const [testimonies, setTestimonies] = useState([]);
+  const [prayerGroups, setPrayerGroups] = useState([]);
+  const [prayerGroupForm, setPrayerGroupForm] = useState({ name: '', description: '', leader_name: '' });
+  const [worshipPlaylists, setWorshipPlaylists] = useState([]);
+  const [playlistForm, setPlaylistForm] = useState({ title: '', description: '', song_ids: '' });
+  const [choirMaterials, setChoirMaterials] = useState([]);
+  const [challenges, setChallenges] = useState([]);
+  const [challengeForm, setChallengeForm] = useState({ title: '', description: '', challenge_date: '', category: 'Faith' });
+  const [childrenStories, setChildrenStories] = useState([]);
+  const [childrenStoryForm, setChildrenStoryForm] = useState({ title: '', content: '', age_group: 'All', language: 'en', url: '' });
+  const [storyCompletions, setStoryCompletions] = useState([]);
+  const [submittingStory, setSubmittingStory] = useState(false);
+
   // Document picker reference
   const [selectedFile, setSelectedFile] = useState(null);
 
@@ -187,6 +203,122 @@ export default function AdminDashboardScreen() {
     }
   }
 
+  // Testimonies Delete
+  async function handleDeleteTestimony(id) {
+    Alert.alert('Delete', 'Delete testimony?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: async () => {
+        try {
+          await apiClient.delete(`/platform/testimonies/${id}`);
+          Alert.alert('Success', 'Testimony deleted.');
+          loadData();
+        } catch (e) { Alert.alert('Error', e.message); }
+      }}
+    ]);
+  }
+
+  // Prayer Group Creation
+  async function handleCreatePrayerGroup() {
+    if (!prayerGroupForm.name.trim()) return Alert.alert('Required', 'Enter group name');
+    try {
+      await postPlatform('/prayer-groups', {
+        name: prayerGroupForm.name.trim(),
+        description: prayerGroupForm.description.trim(),
+        leader_name: prayerGroupForm.leader_name.trim()
+      });
+      Alert.alert('Success', 'Prayer Group created!');
+      setPrayerGroupForm({ name: '', description: '', leader_name: '' });
+      loadData();
+    } catch (e) { Alert.alert('Error', e.message); }
+  }
+
+  // Worship Playlist Creation
+  async function handleCreatePlaylist() {
+    if (!playlistForm.title.trim()) return Alert.alert('Required', 'Enter playlist title');
+    try {
+      await postPlatform('/worship-playlists', {
+        title: playlistForm.title.trim(),
+        description: playlistForm.description.trim(),
+        song_ids: playlistForm.song_ids.trim()
+      });
+      Alert.alert('Success', 'Worship Playlist created!');
+      setPlaylistForm({ title: '', description: '', song_ids: '' });
+      loadData();
+    } catch (e) { Alert.alert('Error', e.message); }
+  }
+
+  // Delete Choir Material
+  async function handleDeleteChoirMaterial(id) {
+    Alert.alert('Delete', 'Delete choir material?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: async () => {
+        try {
+          await apiClient.delete(`/platform/choir-materials/${id}`);
+          Alert.alert('Success', 'Choir material deleted');
+          loadData();
+        } catch (e) { Alert.alert('Error', e.message); }
+      }}
+    ]);
+  }
+
+  // Challenge Creation
+  async function handleCreateChallenge() {
+    if (!challengeForm.title.trim() || !challengeForm.description.trim()) return Alert.alert('Required', 'Title and description are required');
+    try {
+      await postPlatform('/challenges', {
+        title: challengeForm.title.trim(),
+        description: challengeForm.description.trim(),
+        category: challengeForm.category,
+        challenge_date: challengeForm.challenge_date || new Date().toISOString().split('T')[0]
+      });
+      Alert.alert('Success', 'Daily Challenge created!');
+      setChallengeForm({ title: '', description: '', challenge_date: '', category: 'Faith' });
+      loadData();
+    } catch (e) { Alert.alert('Error', e.message); }
+  }
+
+  // Children Story Creation
+  async function handleCreateStory() {
+    if (!childrenStoryForm.title.trim()) return Alert.alert('Required', 'Enter story title');
+    setSubmittingStory(true);
+    try {
+      const formData = new FormData();
+      formData.append('title', childrenStoryForm.title.trim());
+      formData.append('content', childrenStoryForm.content.trim());
+      formData.append('age_group', childrenStoryForm.age_group);
+      formData.append('language', childrenStoryForm.language);
+      if (childrenStoryForm.url.trim()) formData.append('url', childrenStoryForm.url.trim());
+      if (selectedFile) {
+        formData.append('video', { uri: selectedFile.uri, name: selectedFile.name, type: selectedFile.mimeType || 'video/mp4' });
+      }
+      await apiClient.post('/platform/children-stories', formData, { 
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 600000
+      });
+      Alert.alert('Success', 'Children Story uploaded!');
+      setChildrenStoryForm({ title: '', content: '', age_group: 'All', language: 'en', url: '' });
+      setSelectedFile(null);
+      loadData();
+    } catch (e) {
+      Alert.alert('Error', e.message);
+    } finally {
+      setSubmittingStory(false);
+    }
+  }
+
+  // Delete Children Story
+  async function handleDeleteStory(id) {
+    Alert.alert('Delete', 'Delete story?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: async () => {
+        try {
+          await apiClient.delete(`/platform/children-stories/${id}`);
+          loadData();
+        } catch (e) { Alert.alert('Error', e.message); }
+      }}
+    ]);
+  }
+
   async function loadData() {
     setLoading(true);
     try {
@@ -223,6 +355,9 @@ export default function AdminDashboardScreen() {
       } else if (activeTab === 'activity') {
         const res = await apiClient.get('/devotionals');
         setDevotionals(res.data || []);
+      } else if (activeTab === 'devotionals') {
+        const res = await apiClient.get('/devotionals');
+        setDevotionals(res.data || []);
       } else if (activeTab === 'worship') {
         const res = await apiClient.get('/worship');
         setWorshipSongs(res.data || []);
@@ -254,9 +389,31 @@ export default function AdminDashboardScreen() {
           setFamilyGroups([]);
           setFamilyReport([]);
         }
-      } else if (activeTab === 'groups') {
-        const res = await getPlatform('/youth/all');
-        setYouthGroups(Array.isArray(res.data) ? res.data : []);
+      } else if (activeTab === 'testimonies') {
+        const res = await getPlatform('/testimonies');
+        setTestimonies(res.data || []);
+      } else if (activeTab === 'prayer_groups') {
+        const res = await getPlatform('/prayer-groups');
+        setPrayerGroups(res.data || []);
+      } else if (activeTab === 'playlists_choir') {
+        const [playlistsRes, choirRes, songsRes] = await Promise.all([
+          getPlatform('/worship-playlists'),
+          getPlatform('/choir-materials'),
+          apiClient.get('/worship')
+        ]);
+        setWorshipPlaylists(playlistsRes.data || []);
+        setChoirMaterials(choirRes.data || []);
+        setWorshipSongs(songsRes.data || []);
+      } else if (activeTab === 'challenges') {
+        const res = await getPlatform('/challenges');
+        setChallenges(res.data || []);
+      } else if (activeTab === 'children_stories') {
+        const [storiesRes, completionsRes] = await Promise.all([
+          getPlatform('/children-stories'),
+          getPlatform('/children-stories/report/completions')
+        ]);
+        setChildrenStories(storiesRes.data || []);
+        setStoryCompletions(completionsRes.data || []);
       } else if (activeTab === 'prayers') {
         const [cRes, lRes] = await Promise.all([
           apiClient.get('/admin/comments'),
@@ -337,7 +494,7 @@ export default function AdminDashboardScreen() {
       if (selectedFile) {
         formData.append('video', { uri: selectedFile.uri, name: selectedFile.name, type: selectedFile.mimeType || 'video/mp4' });
       }
-      await apiClient.post('/videos', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      await apiClient.post('/videos', formData, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 600000 });
       Alert.alert('Success', 'Video uploaded!');
       setVideoForm({ title: '', description: '', category: 'Sermon', url: '' });
       setSelectedFile(null);
@@ -368,7 +525,7 @@ export default function AdminDashboardScreen() {
       formData.append('pastor', audioForm.pastor.trim() || 'Unknown');
       formData.append('description', audioForm.description.trim());
       formData.append('audio', { uri: selectedFile.uri, name: selectedFile.name, type: selectedFile.mimeType || 'audio/mpeg' });
-      await apiClient.post('/audio', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      await apiClient.post('/audio', formData, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 600000 });
       Alert.alert('Success', 'Audio uploaded!');
       setAudioForm({ title: '', pastor: '', description: '' });
       setSelectedFile(null);
@@ -587,7 +744,7 @@ export default function AdminDashboardScreen() {
                           try {
                             const formData = new FormData();
                             formData.append('content', youthMessage[g.id]);
-                            await apiClient.post(`/platform/youth/${g.id}/post`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+                            await apiClient.post(`/platform/youth/${g.id}/post`, formData, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 600000 });
                             Alert.alert('Success', 'Message sent!');
                             setYouthMessage(prev => ({...prev, [g.id]: ''}));
                           } catch (e) { Alert.alert('Error', e.message); }
@@ -602,7 +759,7 @@ export default function AdminDashboardScreen() {
                             formData.append('content', youthMessage[g.id] || 'Media upload');
                             formData.append('media', { uri: file.uri, name: file.name, type: file.mimeType || 'application/octet-stream' });
                             try {
-                              await apiClient.post(`/platform/youth/${g.id}/post`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+                              await apiClient.post(`/platform/youth/${g.id}/post`, formData, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 600000 });
                               Alert.alert('Success', 'Media uploaded!');
                               setYouthMessage(prev => ({...prev, [g.id]: ''}));
                             } catch (e) { Alert.alert('Error', e.message); }
@@ -1430,7 +1587,7 @@ export default function AdminDashboardScreen() {
                     <View key={m.id} style={styles.groupCard}>
                       <Text style={[styles.groupName, { fontSize: 14 }]}>Media ID: {m.id} ({m.media_type})</Text>
                       
-                      {m.media_type === 'image' && <Image source={{ uri: m.url.startsWith('http') ? m.url : `http://192.168.236.171:3000${m.url}` }} style={{ width: '100%', height: 200, borderRadius: 8, marginVertical: 10 }} resizeMode="cover" />}
+                      {m.media_type === 'image' && <Image source={{ uri: m.url.startsWith('http') ? m.url : `${SERVER_URL}${m.url}` }} style={{ width: '100%', height: 200, borderRadius: 8, marginVertical: 10 }} resizeMode="cover" />}
                       {(m.media_type === 'video' || m.media_type === 'audio') && (
                         <Text style={{color: Colors.gold, marginVertical: 10}}>[{m.media_type.toUpperCase()} PREVIEW NOT AVAILABLE IN DASHBOARD - URL: {m.url}]</Text>
                       )}
@@ -1496,7 +1653,7 @@ export default function AdminDashboardScreen() {
                           const formData = new FormData();
                           formData.append('files', { uri: file.uri, name: file.name, type: file.mimeType || 'application/octet-stream' });
                           try {
-                            await apiClient.post(`/platform/event-galleries/${g.id}/media`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+                            await apiClient.post(`/platform/event-galleries/${g.id}/media`, formData, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 600000 });
                             Alert.alert('Success', 'File uploaded successfully!');
                           } catch(e) { Alert.alert('Error', e.message); }
                         }
@@ -1528,7 +1685,7 @@ export default function AdminDashboardScreen() {
                   <View key={f.family_id} style={{flexDirection: 'row', padding: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.02)'}}>
                     <Text style={{flex: 2, color: Colors.text, fontWeight: 'bold'}}>{i === 0 ? '🥇 ' : i === 1 ? '🥈 ' : i === 2 ? '🥉 ' : ''}{f.family_name}</Text>
                     <Text style={{flex: 1, color: Colors.gold, textAlign: 'center', fontWeight: 'bold'}}>{f.candles_completed} 🔥</Text>
-                    <Text style={{flex: 1, color: Colors.textMuted, textAlign: 'center'}}>{f.prayer_hours.toFixed(1)}h</Text>
+                    <Text style={{flex: 1, color: Colors.textMuted, textAlign: 'center'}}>{Number(f.prayer_hours || 0).toFixed(1)}h</Text>
                   </View>
                 ))}
               </View>
@@ -1618,7 +1775,7 @@ export default function AdminDashboardScreen() {
                           formData.append('media', { uri: file.uri, name: file.name, type: file.mimeType || 'application/octet-stream' });
                           if (youthMessage[yg.id]) formData.append('content', youthMessage[yg.id]);
                           try {
-                            await apiClient.post(`/platform/youth/${yg.id}/post`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+                            await apiClient.post(`/platform/youth/${yg.id}/post`, formData, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 600000 });
                             setYouthMessage(prev => ({...prev, [yg.id]: ''}));
                             Alert.alert('Success', 'Media and message broadcasted!');
                           } catch(e) { Alert.alert('Error', e.message); }
@@ -1630,6 +1787,276 @@ export default function AdminDashboardScreen() {
                   </View>
                 </View>
               ))}
+            </View>
+          )}
+
+          {/* TESTIMONIES TAB */}
+          {activeTab === 'testimonies' && (
+            <View>
+              <Text style={styles.sectionTitle}>MEMBER TESTIMONIES ({testimonies.length})</Text>
+              {testimonies.map(t => (
+                <View key={t.id} style={styles.groupCard}>
+                  <Text style={styles.groupName}>{t.title}</Text>
+                  <Text style={{color: Colors.text, fontSize: 14, marginVertical: 8}}>{t.content}</Text>
+                  <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
+                    <Text style={{color: Colors.textMuted, fontSize: 12}}>By: {t.member_name} • {t.is_public ? '🌐 Public' : '🔒 Private'}</Text>
+                    <TouchableOpacity style={[styles.approveBtn, {backgroundColor: Colors.error, paddingHorizontal: 12, paddingVertical: 6}]} onPress={() => handleDeleteTestimony(t.id)}>
+                      <Text style={styles.approveBtnText}>Delete</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+              {testimonies.length === 0 && <Text style={{color: Colors.textDim, fontStyle: 'italic', textAlign: 'center', marginTop: 20}}>No testimonies found.</Text>}
+            </View>
+          )}
+
+          {/* PRAYER GROUPS TAB */}
+          {activeTab === 'prayer_groups' && (
+            <View>
+              <Text style={styles.sectionTitle}>CREATE PRAYER GROUP</Text>
+              <View style={styles.groupCard}>
+                <TextInput 
+                  style={styles.input} 
+                  placeholder="Group Name" 
+                  placeholderTextColor={Colors.textMuted}
+                  value={prayerGroupForm.name}
+                  onChangeText={v => setPrayerGroupForm(prev => ({...prev, name: v}))}
+                />
+                <TextInput 
+                  style={styles.input} 
+                  placeholder="Leader Name" 
+                  placeholderTextColor={Colors.textMuted}
+                  value={prayerGroupForm.leader_name}
+                  onChangeText={v => setPrayerGroupForm(prev => ({...prev, leader_name: v}))}
+                />
+                <TextInput 
+                  style={[styles.input, {height: 80, textAlignVertical: 'top'}]} 
+                  placeholder="Description" 
+                  placeholderTextColor={Colors.textMuted}
+                  multiline
+                  value={prayerGroupForm.description}
+                  onChangeText={v => setPrayerGroupForm(prev => ({...prev, description: v}))}
+                />
+                <TouchableOpacity style={styles.btn} onPress={handleCreatePrayerGroup}>
+                  <Text style={styles.btnText}>CREATE PRAYER GROUP</Text>
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.sectionTitle}>EXISTING PRAYER GROUPS ({prayerGroups.length})</Text>
+              {prayerGroups.map(pg => (
+                <View key={pg.id} style={styles.groupCard}>
+                  <Text style={styles.groupName}>⭕ {pg.name}</Text>
+                  <Text style={{color: Colors.textMuted, fontSize: 13, marginTop: 4}}>{pg.description || 'No description.'}</Text>
+                  <Text style={{color: Colors.gold, fontSize: 12, marginTop: 8, fontWeight: 'bold'}}>Leader: {pg.leader_name || 'N/A'} • Members: {pg.member_count || 0}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* WORSHIP PLAYLISTS & CHOIR TAB */}
+          {activeTab === 'playlists_choir' && (
+            <View>
+              <Text style={styles.sectionTitle}>CREATE WORSHIP PLAYLIST</Text>
+              <View style={styles.groupCard}>
+                <TextInput 
+                  style={styles.input} 
+                  placeholder="Playlist Title" 
+                  placeholderTextColor={Colors.textMuted}
+                  value={playlistForm.title}
+                  onChangeText={v => setPlaylistForm(prev => ({...prev, title: v}))}
+                />
+                <TextInput 
+                  style={[styles.input, {height: 60, textAlignVertical: 'top'}]} 
+                  placeholder="Description" 
+                  placeholderTextColor={Colors.textMuted}
+                  multiline
+                  value={playlistForm.description}
+                  onChangeText={v => setPlaylistForm(prev => ({...prev, description: v}))}
+                />
+                <TextInput 
+                  style={styles.input} 
+                  placeholder="Song IDs (comma separated, e.g., 1,2,5)" 
+                  placeholderTextColor={Colors.textMuted}
+                  value={playlistForm.song_ids}
+                  onChangeText={v => setPlaylistForm(prev => ({...prev, song_ids: v}))}
+                />
+                <TouchableOpacity style={styles.btn} onPress={handleCreatePlaylist}>
+                  <Text style={styles.btnText}>CREATE PLAYLIST</Text>
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.sectionTitle}>WORSHIP PLAYLISTS ({worshipPlaylists.length})</Text>
+              {worshipPlaylists.map(wp => (
+                <View key={wp.id} style={styles.groupCard}>
+                  <Text style={styles.groupName}>🎼 {wp.title}</Text>
+                  <Text style={{color: Colors.textMuted, fontSize: 13, marginTop: 4}}>{wp.description || 'No description.'}</Text>
+                  <Text style={{color: Colors.textDim, fontSize: 12, marginTop: 8}}>Songs Count: {wp.songs ? wp.songs.length : 0}</Text>
+                </View>
+              ))}
+
+              <Text style={styles.sectionTitle}>CHOIR PRACTICE MATERIALS ({choirMaterials.length})</Text>
+              {choirMaterials.map(cm => (
+                <View key={cm.id} style={styles.groupCard}>
+                  <Text style={styles.groupName}>📄 {cm.title}</Text>
+                  <Text style={{color: Colors.textMuted, fontSize: 12}}>{cm.description || 'No description.'}</Text>
+                  <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8}}>
+                    <Text style={{color: Colors.gold, fontSize: 11, textTransform: 'uppercase'}}>{cm.media_type || 'pdf'}</Text>
+                    <TouchableOpacity style={[styles.approveBtn, {backgroundColor: Colors.error, paddingHorizontal: 12, paddingVertical: 6}]} onPress={() => handleDeleteChoirMaterial(cm.id)}>
+                      <Text style={styles.approveBtnText}>Delete</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* DAILY CHALLENGES TAB */}
+          {activeTab === 'challenges' && (
+            <View>
+              <Text style={styles.sectionTitle}>CREATE DAILY FAITH CHALLENGE</Text>
+              <View style={styles.groupCard}>
+                <TextInput 
+                  style={styles.input} 
+                  placeholder="Challenge Title" 
+                  placeholderTextColor={Colors.textMuted}
+                  value={challengeForm.title}
+                  onChangeText={v => setChallengeForm(prev => ({...prev, title: v}))}
+                />
+                <TextInput 
+                  style={[styles.input, {height: 60, textAlignVertical: 'top'}]} 
+                  placeholder="Description" 
+                  placeholderTextColor={Colors.textMuted}
+                  multiline
+                  value={challengeForm.description}
+                  onChangeText={v => setChallengeForm(prev => ({...prev, description: v}))}
+                />
+                <TextInput 
+                  style={styles.input} 
+                  placeholder="Challenge Date (YYYY-MM-DD, optional)" 
+                  placeholderTextColor={Colors.textMuted}
+                  value={challengeForm.challenge_date}
+                  onChangeText={v => setChallengeForm(prev => ({...prev, challenge_date: v}))}
+                />
+                <TextInput 
+                  style={styles.input} 
+                  placeholder="Category (e.g. Faith, Prayer, Love)" 
+                  placeholderTextColor={Colors.textMuted}
+                  value={challengeForm.category}
+                  onChangeText={v => setChallengeForm(prev => ({...prev, category: v}))}
+                />
+                <TouchableOpacity style={styles.btn} onPress={handleCreateChallenge}>
+                  <Text style={styles.btnText}>CREATE CHALLENGE</Text>
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.sectionTitle}>ACTIVE DAILY CHALLENGES ({challenges.length})</Text>
+              {challenges.map(c => (
+                <View key={c.id} style={styles.groupCard}>
+                  <Text style={styles.groupName}>🏆 {c.title}</Text>
+                  <Text style={{color: Colors.textMuted, fontSize: 13, marginTop: 4}}>{c.description}</Text>
+                  <Text style={{color: Colors.gold, fontSize: 12, marginTop: 8}}>Date: {c.challenge_date || 'All days'} • Category: {c.category || 'Faith'}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* CHILDREN STORIES TAB */}
+          {activeTab === 'children_stories' && (
+            <View>
+              <Text style={styles.sectionTitle}>UPLOAD CHILDREN STORY</Text>
+              <View style={styles.groupCard}>
+                <TextInput 
+                  style={styles.input} 
+                  placeholder="Story Title" 
+                  placeholderTextColor={Colors.textMuted}
+                  value={childrenStoryForm.title}
+                  onChangeText={v => setChildrenStoryForm(prev => ({...prev, title: v}))}
+                />
+                <TextInput 
+                  style={[styles.input, {height: 80, textAlignVertical: 'top'}]} 
+                  placeholder="Story Text Content" 
+                  placeholderTextColor={Colors.textMuted}
+                  multiline
+                  value={childrenStoryForm.content}
+                  onChangeText={v => setChildrenStoryForm(prev => ({...prev, content: v}))}
+                />
+                <TextInput 
+                  style={styles.input} 
+                  placeholder="Video URL (Optional, or upload file below)" 
+                  placeholderTextColor={Colors.textMuted}
+                  value={childrenStoryForm.url}
+                  onChangeText={v => setChildrenStoryForm(prev => ({...prev, url: v}))}
+                />
+                <TextInput 
+                  style={styles.input} 
+                  placeholder="Age Group (e.g. 5-8, 9-12, All)" 
+                  placeholderTextColor={Colors.textMuted}
+                  value={childrenStoryForm.age_group}
+                  onChangeText={v => setChildrenStoryForm(prev => ({...prev, age_group: v}))}
+                />
+                
+                <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 12}}>
+                  <TouchableOpacity 
+                    style={[styles.approveBtn, {flex: 1, backgroundColor: selectedFile ? Colors.gold : 'rgba(255,255,255,0.08)'}]} 
+                    onPress={async () => {
+                      const result = await DocumentPicker.getDocumentAsync({ type: 'video/*' });
+                      if (!result.canceled) setSelectedFile(result.assets[0]);
+                    }}
+                  >
+                    <Text style={[styles.approveBtnText, {color: selectedFile ? '#000' : Colors.text}]}>
+                      {selectedFile ? `Selected: ${selectedFile.name.substring(0, 15)}...` : 'Pick Video File'}
+                    </Text>
+                  </TouchableOpacity>
+                  {selectedFile && (
+                    <TouchableOpacity style={{marginLeft: 10}} onPress={clearSelectedFile}>
+                      <Text style={{color: Colors.error, fontWeight: 'bold'}}>Clear</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+
+                <TouchableOpacity style={[styles.btn, submittingStory && {opacity: 0.6}]} onPress={handleCreateStory} disabled={submittingStory}>
+                  {submittingStory ? (
+                    <ActivityIndicator size="small" color="#000" />
+                  ) : (
+                    <Text style={styles.btnText}>UPLOAD STORY</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.sectionTitle}>STORIES LIST ({childrenStories.length})</Text>
+              {childrenStories.map(cs => (
+                <View key={cs.id} style={styles.groupCard}>
+                  <Text style={styles.groupName}>👼 {cs.title}</Text>
+                  <Text style={{color: Colors.textMuted, fontSize: 13, marginVertical: 4}} numberOfLines={2}>{cs.content}</Text>
+                  <Text style={{color: Colors.gold, fontSize: 12}}>Age Group: {cs.age_group} • Media: {cs.media_type}</Text>
+                  {cs.video_url ? <Text style={{color: Colors.textDim, fontSize: 11, marginTop: 4}} numberOfLines={1}>Video URI: {cs.video_url}</Text> : null}
+                  <TouchableOpacity style={[styles.approveBtn, {backgroundColor: Colors.error, marginTop: 10, alignSelf: 'flex-start'}]} onPress={() => handleDeleteStory(cs.id)}>
+                    <Text style={styles.approveBtnText}>Delete Story</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+
+              <Text style={styles.sectionTitle}>CHILDREN STORY COMPLETIONS REPORT</Text>
+              <View style={[styles.groupCard, { padding: 0, overflow: 'hidden' }]}>
+                <View style={{flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', padding: 10, borderBottomWidth: 1, borderBottomColor: Colors.glassBorder}}>
+                  <Text style={{flex: 1.5, color: Colors.gold, fontWeight: 'bold', fontSize: 11}}>Child Name</Text>
+                  <Text style={{flex: 1, color: Colors.textMuted, textAlign: 'center', fontSize: 11}}>Class</Text>
+                  <Text style={{flex: 2, color: Colors.textMuted, fontSize: 11}}>Story Completed</Text>
+                  <Text style={{flex: 1.5, color: Colors.textMuted, fontSize: 11, textAlign: 'right'}}>Date</Text>
+                </View>
+                {storyCompletions.length === 0 && <Text style={{padding: 15, color: Colors.textDim, textAlign: 'center'}}>No completions logged yet.</Text>}
+                {storyCompletions.map(sc => (
+                  <View key={sc.id} style={{flexDirection: 'row', padding: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.02)', alignItems: 'center'}}>
+                    <View style={{flex: 1.5}}>
+                      <Text style={{color: Colors.text, fontWeight: 'bold', fontSize: 12}}>{sc.child_name}</Text>
+                      {sc.student_phone ? <Text style={{color: Colors.textDim, fontSize: 9}}>{sc.student_phone}</Text> : null}
+                    </View>
+                    <Text style={{flex: 1, color: Colors.text, textAlign: 'center', fontSize: 12}}>{sc.class}</Text>
+                    <Text style={{flex: 2, color: Colors.gold, fontSize: 11}} numberOfLines={1}>{sc.story_title}</Text>
+                    <Text style={{flex: 1.5, color: Colors.textMuted, fontSize: 10, textAlign: 'right'}}>{new Date(sc.completed_at).toLocaleDateString()}</Text>
+                  </View>
+                ))}
+              </View>
             </View>
           )}
 
@@ -1698,6 +2125,11 @@ export default function AdminDashboardScreen() {
             { label: 'Prayers', icon: '🙏', tab: 'prayers' },
             { label: 'Verses', icon: '📖', tab: 'verses' },
             { label: 'Family Groups', icon: '👨‍👩‍👧‍👦', tab: 'family_groups' },
+            { label: 'Testimonies', icon: '💬', tab: 'testimonies' },
+            { label: 'Prayer Groups', icon: '⭕', tab: 'prayer_groups' },
+            { label: 'Playlists & Choir', icon: '🎼', tab: 'playlists_choir' },
+            { label: 'Daily Challenges', icon: '🏆', tab: 'challenges' },
+            { label: 'Children Stories', icon: '👼', tab: 'children_stories' },
             { label: 'Activity', icon: '💬', tab: 'activity' },
             { label: 'Settings', icon: '⚙️', tab: 'settings' },
           ].map(item => (

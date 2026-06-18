@@ -40,22 +40,30 @@ app.use('/api/history', require('./routes/history'));
 app.use('/api/platform', require('./routes/extended'));
 app.use('/api/social', require('./routes/social'));
 
-app.get('/api/members', require('./middleware/auth').authenticateToken, require('./middleware/auth').requireAdmin, (req, res) => {
-    const { db } = require('./database');
-    const members = db.prepare('SELECT id, name, phone, created_at FROM members ORDER BY created_at DESC').all();
-    res.json(members);
+app.get('/api/members', require('./middleware/auth').authenticateToken, require('./middleware/auth').requireAdmin, async (req, res) => {
+    try {
+        const { db } = require('./database');
+        const [members] = await db.query('SELECT id, name, phone, created_at FROM members ORDER BY created_at DESC');
+        res.json(members);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
-app.delete('/api/members/:id', require('./middleware/auth').authenticateToken, require('./middleware/auth').requireAdmin, (req, res) => {
-    const { db } = require('./database');
-    db.prepare('DELETE FROM members WHERE id = ?').run(req.params.id);
-    res.json({ message: 'Member removed.' });
+app.delete('/api/members/:id', require('./middleware/auth').authenticateToken, require('./middleware/auth').requireAdmin, async (req, res) => {
+    try {
+        const { db } = require('./database');
+        await db.query('DELETE FROM members WHERE id = ?', [req.params.id]);
+        res.json({ message: 'Member removed.' });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
 // Admin: get all comments
-app.get('/api/admin/comments', require('./middleware/auth').authenticateToken, require('./middleware/auth').requireAdmin, (req, res) => {
+app.get('/api/admin/comments', require('./middleware/auth').authenticateToken, require('./middleware/auth').requireAdmin, async (req, res) => {
     try {
         const { db } = require('./database');
-        const comments = db.prepare('SELECT * FROM media_comments ORDER BY created_at DESC').all();
+        const [comments] = await db.query('SELECT * FROM media_comments ORDER BY created_at DESC');
         res.json(comments);
     } catch (e) {
         res.status(500).json({ error: e.message });
@@ -63,15 +71,15 @@ app.get('/api/admin/comments', require('./middleware/auth').authenticateToken, r
 });
 
 // Admin: get all likes
-app.get('/api/admin/likes', require('./middleware/auth').authenticateToken, require('./middleware/auth').requireAdmin, (req, res) => {
+app.get('/api/admin/likes', require('./middleware/auth').authenticateToken, require('./middleware/auth').requireAdmin, async (req, res) => {
     try {
         const { db } = require('./database');
-        const likes = db.prepare(`
+        const [likes] = await db.query(`
             SELECT ml.*, m.name as member_name 
             FROM media_likes ml
             LEFT JOIN members m ON ml.member_id = m.id
             ORDER BY ml.created_at DESC
-        `).all();
+        `);
         res.json(likes);
     } catch (e) {
         res.status(500).json({ error: e.message });
@@ -79,21 +87,18 @@ app.get('/api/admin/likes', require('./middleware/auth').authenticateToken, requ
 });
 
 // Admin Database Reset
-app.post('/api/admin/reset', require('./middleware/auth').authenticateToken, require('./middleware/auth').requireAdmin, (req, res) => {
+app.post('/api/admin/reset', require('./middleware/auth').authenticateToken, require('./middleware/auth').requireAdmin, async (req, res) => {
     const { db } = require('./database');
     try {
-        const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
-        db.exec('BEGIN TRANSACTION;');
-        for (const table of tables) {
-            const name = table.name;
-            if (name !== 'sqlite_sequence' && name !== 'members' && name !== 'admins') {
-                db.prepare(`DELETE FROM ${name}`).run();
+        const [rows] = await db.query("SHOW TABLES");
+        for (const row of rows) {
+            const tableName = Object.values(row)[0];
+            if (tableName !== 'admins' && tableName !== 'members') {
+                await db.query(`DELETE FROM ${tableName}`);
             }
         }
-        db.exec('COMMIT;');
         res.json({ message: 'Database reset successful. Members were retained.' });
     } catch (e) {
-        db.exec('ROLLBACK;');
         res.status(500).json({ error: e.message });
     }
 });

@@ -1,14 +1,15 @@
-import { useEffect, useState, useContext } from 'react';
-import { View, Text, ScrollView, StyleSheet, SafeAreaView, RefreshControl, TouchableOpacity, ActivityIndicator, TextInput, Switch, Alert, Image, Modal } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useEffect, useState, useContext, useRef } from 'react';
+import { View, Text, ScrollView, StyleSheet, SafeAreaView, RefreshControl, TouchableOpacity, ActivityIndicator, TextInput, Switch, Alert, Image, Modal, Platform, StatusBar } from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { DrawerContext } from './_layout';
 import apiClient, { getPlatform, postPlatform } from '../../src/services/api';
 import { useAuth } from '../../src/context/AuthContext';
 import { Colors, Spacing, Radius } from '../../src/config/theme';
 import { useLanguage } from '../../src/context/LanguageContext';
-import { Video, ResizeMode } from 'expo-av';
+import { Video, ResizeMode, Audio } from 'expo-av';
 import { WebView } from 'react-native-webview';
 import * as DocumentPicker from 'expo-document-picker';
+import { Calendar } from 'react-native-calendars';
 import { API_BASE_URL } from '../../src/config/api';
 
 const SERVER_URL = API_BASE_URL.replace('/api', '');
@@ -19,12 +20,24 @@ export default function MoreScreen() {
   const { t, lang } = useLanguage();
   const router = useRouter();
   const { user } = useAuth();
+  const params = useLocalSearchParams();
+  const section = params.section;
   
   // Section state: null (menu), 'fasting', 'reading', 'services', 'podcasts', 'stories', 'testimonies', 'prayer_groups', 'playlists_choir', 'challenges', 'memorization'
   const [activeSection, setActiveSection] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (section) {
+      handleSectionSelect(section);
+    } else {
+      router.replace('/(member)/home');
+    }
+  }, [section]);
+
   const [data, setData] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedDate, setSelectedDate] = useState('');
 
   // Fasting form
   const [fastingPurpose, setFastingPurpose] = useState('');
@@ -69,6 +82,47 @@ export default function MoreScreen() {
   // Memorization states
   const [memorizations, setMemorizations] = useState([]);
   const [memorizationForm, setMemorizationForm] = useState({ verse: '', reference: '' });
+
+  // Podcast Audio states
+  const [sound, setSound] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [playingPodcastId, setPlayingPodcastId] = useState(null);
+  const [playingPodcast, setPlayingPodcast] = useState(null);
+  const [playbackPos, setPlaybackPos] = useState(0);
+  const [playbackDur, setPlaybackDur] = useState(0);
+  const [loadingPodcastId, setLoadingPodcastId] = useState(null);
+  const [progressBarWidth, setProgressBarWidth] = useState(1);
+
+  // AI Counselor states
+  const [chatMessages, setChatMessages] = useState([
+    { id: 1, text: "Welcome! I am your Spiritual AI Counselor. Ask me about anxiety, faith, hope, love, grief, forgiveness, or any scriptural guidance.", sender: 'bot' }
+  ]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatSending, setChatSending] = useState(false);
+  const chatScrollRef = useRef(null);
+
+  // Bulletins states
+  const [selectedBulletin, setSelectedBulletin] = useState(null);
+
+  // Resources states
+  const [resourceTab, setResourceTab] = useState('parenting');
+
+  // Prayer Calendar states
+  const [myReminders, setMyReminders] = useState([]);
+
+  // Song Requests states
+  const [songTitleInput, setSongTitleInput] = useState('');
+  const [songOccasionInput, setSongOccasionInput] = useState('');
+  const [submittingSongRequest, setSubmittingSongRequest] = useState(false);
+
+  // Audio cleanup on unmount
+  useEffect(() => {
+    return sound
+      ? () => {
+          sound.unloadAsync();
+        }
+      : undefined;
+  }, [sound]);
 
   async function loadSectionData(sec) {
     setLoading(true);
@@ -118,8 +172,38 @@ export default function MoreScreen() {
         setChallenges(Array.isArray(activeRes.data) ? activeRes.data : activeRes.data ? [activeRes.data] : []);
         setCompletedChallenges(completedRes.data || []);
       } else if (sec === 'memorization') {
-        res = await getPlatform(`/memorization/${user?.id}`);
-        setMemorizations(res?.data || []);
+        const [globalRes, myRes] = await Promise.all([
+          getPlatform('/global-memorizations'),
+          getPlatform(`/memorization/${user?.id}`)
+        ]);
+        const globalMems = Array.isArray(globalRes?.data) ? globalRes.data.map(m => ({ ...m, isGlobal: true })) : [];
+        const myMems = Array.isArray(myRes?.data) ? myRes.data : [];
+        setMemorizations([...globalMems, ...myMems]);
+      } else if (sec === 'bulletins') {
+        res = await getPlatform('/bulletins');
+        setData(res?.data || []);
+      } else if (sec === 'ministries') {
+        res = await getPlatform('/ministry-groups');
+        setData(res?.data || []);
+      } else if (sec === 'volunteering') {
+        res = await getPlatform('/volunteers');
+        setData(res?.data || []);
+      } else if (sec === 'resources') {
+        const [parentingRes, youthRes] = await Promise.all([
+          getPlatform('/parenting'),
+          getPlatform('/youth-corner')
+        ]);
+        setData({ parenting: parentingRes.data || [], youth: youthRes.data || [] });
+      } else if (sec === 'prayer_calendar') {
+        const [calRes, remRes] = await Promise.all([
+          getPlatform('/prayer-calendar'),
+          getPlatform(`/prayer-reminders/${user?.id}`)
+        ]);
+        setData(calRes.data || []);
+        setMyReminders(remRes.data || []);
+      } else if (sec === 'song_requests') {
+        res = await getPlatform('/song-requests');
+        setData(res?.data || []);
       }
     } catch (_) {
       setData([]);
@@ -133,8 +217,12 @@ export default function MoreScreen() {
     setSelectedStory(null);
     setSelectedPlaylist(null);
     setSelectedChoirFile(null);
+    setSelectedBulletin(null);
     if (sec) {
       loadSectionData(sec);
+    }
+    if (sec === 'ai_counselor') {
+      setTimeout(() => chatScrollRef.current?.scrollToEnd({ animated: true }), 200);
     }
   }
 
@@ -392,6 +480,173 @@ export default function MoreScreen() {
     } catch(e) { Alert.alert('Error', e.message); }
   }
 
+  // AI Counselor Chat
+  async function handleSendChatMessage() {
+    if (!chatInput.trim()) return;
+    const userMsg = chatInput.trim();
+    setChatInput('');
+    
+    const userMsgObj = { id: Date.now(), text: userMsg, sender: 'user' };
+    setChatMessages(prev => [...prev, userMsgObj]);
+    setChatSending(true);
+    setTimeout(() => chatScrollRef.current?.scrollToEnd({ animated: true }), 100);
+    
+    try {
+      const res = await postPlatform('/ai-chat', { question: userMsg });
+      const botMsgObj = { id: Date.now() + 1, text: res.data.answer, sender: 'bot' };
+      setChatMessages(prev => [...prev, botMsgObj]);
+      setTimeout(() => chatScrollRef.current?.scrollToEnd({ animated: true }), 100);
+    } catch (err) {
+      const errorMsgObj = { id: Date.now() + 1, text: "Sorry, I am having trouble connecting to the server. Please try again.", sender: 'bot' };
+      setChatMessages(prev => [...prev, errorMsgObj]);
+      setTimeout(() => chatScrollRef.current?.scrollToEnd({ animated: true }), 100);
+    } finally {
+      setChatSending(false);
+    }
+  }
+
+  // Volunteering Signup
+  async function handleVolunteerSignup(oppId) {
+    try {
+      await postPlatform(`/volunteers/${oppId}/signup`);
+      Alert.alert('Thank You! 🙏', 'You have successfully signed up for this duty.');
+      loadSectionData('volunteering');
+    } catch (err) {
+      Alert.alert('Error', err.message);
+    }
+  }
+
+  // Ministry Group Join
+  async function handleJoinMinistryGroup(groupId) {
+    try {
+      await postPlatform(`/ministry-groups/${groupId}/join`);
+      Alert.alert('Joined ⛪', 'You have successfully joined this ministry group.');
+      loadSectionData('ministries');
+    } catch (err) {
+      Alert.alert('Error', err.message);
+    }
+  }
+
+  // Prayer Calendar Toggle Reminder
+  async function handleToggleReminder(event) {
+    const existing = myReminders.find(r => r.reminder_time.startsWith(event.event_date));
+    try {
+      if (existing) {
+        await apiClient.delete(`/platform/prayer-reminders/${existing.id}`);
+        Alert.alert('Success', 'Reminder removed!');
+      } else {
+        await postPlatform('/prayer-reminders', {
+          reminder_time: `${event.event_date} 08:00:00`,
+          message: `Reminder: ${event.title}`
+        });
+        Alert.alert('Success', 'Reminder set! You will be notified.');
+      }
+      const remRes = await getPlatform(`/prayer-reminders/${user?.id}`);
+      setMyReminders(remRes.data || []);
+    } catch (err) {
+      Alert.alert('Error', err.message);
+    }
+  }
+
+  // Submit Song Request
+  async function handleSubmitSongRequest() {
+    if (!songTitleInput.trim()) return Alert.alert('Required', 'Song title is required');
+    setSubmittingSongRequest(true);
+    try {
+      await postPlatform('/song-requests', {
+        song_title: songTitleInput.trim(),
+        occasion: songOccasionInput.trim()
+      });
+      setSongTitleInput('');
+      setSongOccasionInput('');
+      Alert.alert('Success', 'Your song request has been submitted for approval!');
+      await loadSectionData('song_requests');
+    } catch (err) {
+      Alert.alert('Error', err.message);
+    } finally {
+      setSubmittingSongRequest(false);
+    }
+  }
+
+  // Podcast Audio Playback
+  async function handlePlayPodcast(pod) {
+    if (playingPodcastId === pod.id && sound) {
+      if (isPlaying) {
+        await sound.pauseAsync();
+        setIsPlaying(false);
+      } else {
+        await sound.playAsync();
+        setIsPlaying(true);
+      }
+      return;
+    }
+
+    setLoadingPodcastId(pod.id);
+    try {
+      if (sound) {
+        await sound.unloadAsync();
+        setSound(null);
+        setIsPlaying(false);
+        setPlaybackPos(0);
+        setPlaybackDur(0);
+      }
+
+      let audioUri = '';
+      if (pod.filename) {
+        audioUri = `${SERVER_URL}/uploads/${pod.filename}`;
+      } else if (pod.url) {
+        audioUri = pod.url;
+      } else {
+        Alert.alert('Error', 'Audio file not available for this podcast');
+        setLoadingPodcastId(null);
+        return;
+      }
+
+      const { sound: newSound } = await Audio.Sound.createAsync(
+        { uri: audioUri },
+        { shouldPlay: true },
+        onPlaybackStatusUpdate
+      );
+
+      setSound(newSound);
+      setPlayingPodcastId(pod.id);
+      setPlayingPodcast(pod);
+      setIsPlaying(true);
+    } catch (err) {
+      console.log('Error playing podcast:', err);
+      Alert.alert('Error', 'Failed to play podcast audio');
+    } finally {
+      setLoadingPodcastId(null);
+    }
+  }
+
+  function onPlaybackStatusUpdate(status) {
+    if (status.isLoaded) {
+      setPlaybackPos(status.positionMillis);
+      setPlaybackDur(status.durationMillis || 0);
+      setIsPlaying(status.isPlaying);
+      if (status.didJustFinish) {
+        setIsPlaying(false);
+        setPlaybackPos(0);
+      }
+    }
+  }
+
+  async function handleSeekPodcast(val) {
+    if (sound) {
+      await sound.setPositionAsync(val);
+      setPlaybackPos(val);
+    }
+  }
+
+  function formatTime(ms) {
+    if (!ms || isNaN(ms)) return '0:00';
+    const totalSecs = Math.floor(ms / 1000);
+    const mins = Math.floor(totalSecs / 60);
+    const secs = totalSecs % 60;
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  }
+
   const menuItems = [
     { key: 'reading', title: t('reading'), desc: t('reading_desc') },
     { key: 'fasting', title: t('fasting'), desc: t('fasting_desc') },
@@ -403,16 +658,23 @@ export default function MoreScreen() {
     { key: 'playlists_choir', title: '🎼 Worship & Choir', desc: 'Access worship songlists & practice sheets' },
     { key: 'challenges', title: '🏆 Daily Challenges', desc: 'Participate in faith building challenges' },
     { key: 'memorization', title: '📖 Scripture Memorization', desc: 'Memorize bible verses and keep progress' },
+    { key: 'ai_counselor', title: '🤖 AI Counselor', desc: 'Chat with our spiritual AI chatbot for biblical guidance' },
+    { key: 'bulletins', title: '📰 Weekly Bulletins', desc: 'Read the latest weekly parish announcements' },
+    { key: 'ministries', title: '⛪ Ministry Groups', desc: 'Explore and join church ministry groups' },
+    { key: 'volunteering', title: '🤝 Volunteering & Duties', desc: 'Sign up for volunteer duties and view instructions' },
+    { key: 'resources', title: '📚 Educational Resources', desc: 'Articles and guides for Youth Corner and Parenting' },
+    { key: 'prayer_calendar', title: '📅 Prayer Calendar', desc: 'View special parish prayers and set reminders' },
+    { key: 'song_requests', title: '🎵 Song Requests', desc: 'Request worship songs to be sung during Sunday Mass' }
   ];
 
   if (activeSection) {
     return (
       <SafeAreaView style={styles.safe}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => handleSectionSelect(null)} style={styles.backBtnSmall}>
-            <Text style={styles.backTextSmall}>{t('back')}</Text>
+        <View style={[styles.header, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
+          <TouchableOpacity onPress={toggleDrawer} style={styles.menuBtn}>
+            <Text style={{ fontSize: 24, color: Colors.gold, fontWeight: 'bold' }}>☰</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>
+          <Text style={[styles.title, { flex: 1, textAlign: 'center', marginHorizontal: 10 }]}>
             {activeSection === 'reading' && t('reading_plans')}
             {activeSection === 'fasting' && t('fasting')}
             {activeSection === 'services' && t('services')}
@@ -423,7 +685,17 @@ export default function MoreScreen() {
             {activeSection === 'playlists_choir' && 'Worship & Choir'}
             {activeSection === 'challenges' && 'Daily Challenges'}
             {activeSection === 'memorization' && 'Scripture Memorization'}
+            {activeSection === 'ai_counselor' && 'AI Counselor'}
+            {activeSection === 'bulletins' && 'Weekly Bulletins'}
+            {activeSection === 'ministries' && 'Ministry Groups'}
+            {activeSection === 'volunteering' && 'Volunteering & Duties'}
+            {activeSection === 'resources' && 'Educational Resources'}
+            {activeSection === 'prayer_calendar' && 'Prayer Calendar'}
+            {activeSection === 'song_requests' && 'Song Requests'}
           </Text>
+          <TouchableOpacity onPress={() => router.replace('/(member)/home')} style={styles.backBtnSmall}>
+            <Text style={{ fontSize: 16, color: Colors.gold }}>🔙 {t('back')}</Text>
+          </TouchableOpacity>
         </View>
 
         {loading ? (
@@ -511,14 +783,32 @@ export default function MoreScreen() {
             {/* PODCASTS SECTION */}
             {activeSection === 'podcasts' && (
               <View>
-                {data.map(pod => (
-                  <View key={pod.id} style={styles.podcastCard}>
-                    <Text style={styles.podcastLang}>{pod.language === 'ta' ? t('tamil') : t('english')}</Text>
-                    <Text style={styles.podcastTitle}>{lang === 'ta' && pod.title_tamil ? pod.title_tamil : pod.title}</Text>
-                    <Text style={styles.podcastPastor}>🎤 {pod.pastor || t('pastor')}</Text>
-                    {pod.description || pod.description_tamil ? <Text style={styles.podcastDesc}>{lang === 'ta' && pod.description_tamil ? pod.description_tamil : pod.description}</Text> : null}
-                  </View>
-                ))}
+                {data.map(pod => {
+                  const isPlayingThis = playingPodcastId === pod.id && isPlaying;
+                  const isLoadingThis = loadingPodcastId === pod.id;
+                  return (
+                    <View key={pod.id} style={styles.podcastCard}>
+                      <Text style={styles.podcastLang}>{pod.language === 'ta' ? t('tamil') : t('english')}</Text>
+                      <Text style={styles.podcastTitle}>{lang === 'ta' && pod.title_tamil ? pod.title_tamil : pod.title}</Text>
+                      <Text style={styles.podcastPastor}>🎤 {pod.pastor || t('pastor')}</Text>
+                      {pod.description || pod.description_tamil ? <Text style={styles.podcastDesc}>{lang === 'ta' && pod.description_tamil ? pod.description_tamil : pod.description}</Text> : null}
+                      
+                      <TouchableOpacity 
+                        style={[styles.saveBtn, { paddingVertical: 8, marginTop: 12, backgroundColor: isPlayingThis ? 'rgba(255,255,255,0.08)' : Colors.gold }]} 
+                        onPress={() => handlePlayPodcast(pod)}
+                        disabled={isLoadingThis}
+                      >
+                        {isLoadingThis ? (
+                          <ActivityIndicator size="small" color={Colors.dark} />
+                        ) : (
+                          <Text style={[styles.saveBtnText, { color: isPlayingThis ? Colors.text : Colors.dark }]}>
+                            {isPlayingThis ? '⏸ Pause Podcast' : '▶ Play Audio Sermon'}
+                          </Text>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })}
                 {data.length === 0 && <Text style={styles.empty}>{t('no_podcasts')}</Text>}
               </View>
             )}
@@ -937,53 +1227,327 @@ export default function MoreScreen() {
             {/* SCRIPTURE MEMORIZATION SECTION */}
             {activeSection === 'memorization' && (
               <View>
-                <View style={styles.composeCard}>
-                  <Text style={styles.composeTitle}>Add Verse to Memorize</Text>
-                  <TextInput 
-                    style={styles.input} 
-                    placeholder="Scripture Verse (e.g. For God so loved...)" 
-                    placeholderTextColor="#888"
-                    multiline
-                    value={memorizationForm.verse}
-                    onChangeText={v => setMemorizationForm({...memorizationForm, verse: v})}
-                  />
-                  <TextInput 
-                    style={styles.input} 
-                    placeholder="Reference (e.g. John 3:16)" 
-                    placeholderTextColor="#888"
-                    value={memorizationForm.reference}
-                    onChangeText={v => setMemorizationForm({...memorizationForm, reference: v})}
-                  />
-                  <TouchableOpacity 
-                    style={[styles.saveBtn, (!memorizationForm.verse.trim() || !memorizationForm.reference.trim()) && styles.saveBtnDisabled]}
-                    onPress={handleAddMemorization}
-                    disabled={!memorizationForm.verse.trim() || !memorizationForm.reference.trim()}
-                  >
-                    <Text style={styles.saveBtnText}>Save Scripture</Text>
-                  </TouchableOpacity>
-                </View>
-
-                <Text style={styles.sectionLabel}>MY SCRIPTURES TO MEMORIZE ({memorizations.length})</Text>
+                <Text style={styles.sectionLabel}>SCRIPTURES TO MEMORIZE ({memorizations.length})</Text>
                 {memorizations.map(m => (
                   <View key={m.id} style={styles.planCard}>
                     <Text style={{color: Colors.white, fontSize: 15, fontStyle: 'italic', lineHeight: 22}}>"{m.verse}"</Text>
                     <Text style={{color: Colors.gold, fontWeight: 'bold', fontSize: 13, marginTop: 5}}>— {m.reference}</Text>
-                    
-                    <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 15, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)', paddingTop: 10}}>
-                      {m.mastered ? (
-                        <Text style={{color: '#27c93f', fontWeight: 'bold', fontSize: 12}}>✓ Mastered 🎉</Text>
-                      ) : (
-                        <TouchableOpacity style={[styles.backBtnSmall, {backgroundColor: 'rgba(39,201,63,0.1)'}]} onPress={() => handleMasterMemorization(m.id)}>
-                          <Text style={{color: '#27c93f', fontSize: 11, fontWeight: '700'}}>Mark as Mastered</Text>
-                        </TouchableOpacity>
-                      )}
-                      
-                      <TouchableOpacity style={[styles.backBtnSmall, {backgroundColor: 'rgba(255,59,48,0.1)'}]} onPress={() => handleDeleteMemorization(m.id)}>
-                        <Text style={{color: Colors.error, fontSize: 11, fontWeight: '700'}}>Delete</Text>
+                  </View>
+                ))}
+                {memorizations.length === 0 && <Text style={styles.empty}>No scriptures available.</Text>}
+              </View>
+            )}
+
+            {/* AI COUNSELOR SECTION */}
+            {activeSection === 'ai_counselor' && (
+              <View style={{ flex: 1, minHeight: 400 }}>
+                <ScrollView 
+                  style={{ maxHeight: 350, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: Radius.md, padding: Spacing.sm, borderWidth: 1, borderColor: Colors.glassBorder, marginBottom: 15 }}
+                  contentContainerStyle={{ gap: 10 }}
+                  ref={chatScrollRef}
+                >
+                  {chatMessages.map(msg => (
+                    <View 
+                      key={msg.id} 
+                      style={[
+                        { padding: 12, borderRadius: Radius.md, maxWidth: '80%' },
+                        msg.sender === 'user' 
+                          ? { backgroundColor: Colors.gold, alignSelf: 'flex-end' } 
+                          : { backgroundColor: Colors.darkCard, alignSelf: 'flex-start', borderWidth: 1, borderColor: Colors.glassBorder }
+                      ]}
+                    >
+                      <Text style={{ color: msg.sender === 'user' ? Colors.dark : Colors.text, fontSize: 14, lineHeight: 20 }}>
+                        {msg.text}
+                      </Text>
+                    </View>
+                  ))}
+                  {chatSending && (
+                    <View style={{ alignSelf: 'flex-start', padding: 10 }}>
+                      <ActivityIndicator size="small" color={Colors.gold} />
+                    </View>
+                  )}
+                </ScrollView>
+                <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+                  <TextInput 
+                    style={[styles.input, { flex: 1, marginBottom: 0 }]} 
+                    placeholder="Ask about faith, anxiety, comfort..." 
+                    placeholderTextColor="#888"
+                    value={chatInput}
+                    onChangeText={setChatInput}
+                    onSubmitEditing={handleSendChatMessage}
+                  />
+                  <TouchableOpacity 
+                    style={[styles.saveBtn, { paddingHorizontal: 20, paddingVertical: 13 }, !chatInput.trim() && styles.saveBtnDisabled]} 
+                    onPress={handleSendChatMessage}
+                    disabled={!chatInput.trim() || chatSending}
+                  >
+                    <Text style={styles.saveBtnText}>Ask</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+            {/* WEEKLY BULLETINS SECTION */}
+            {activeSection === 'bulletins' && (
+              <View>
+                {selectedBulletin ? (
+                  <View style={styles.planCard}>
+                    <TouchableOpacity onPress={() => setSelectedBulletin(null)} style={styles.backBtnSmall}>
+                      <Text style={styles.backTextSmall}>← Back to Bulletins</Text>
+                    </TouchableOpacity>
+                    <Text style={[styles.planTitle, { marginTop: 10 }]}>{selectedBulletin.title}</Text>
+                    <Text style={{ color: Colors.gold, fontSize: 12, marginBottom: 15 }}>Published: {selectedBulletin.week_date}</Text>
+                    <Text style={{ color: Colors.text, fontSize: 14, lineHeight: 22 }}>{selectedBulletin.content}</Text>
+                  </View>
+                ) : (
+                  <View>
+                    {data.map(b => (
+                      <TouchableOpacity key={b.id} style={styles.planCard} onPress={() => setSelectedBulletin(b)}>
+                        <Text style={styles.planDuration}>Week: {b.week_date}</Text>
+                        <Text style={styles.planTitle}>{b.title}</Text>
+                        <Text style={styles.planDesc} numberOfLines={2}>{b.content}</Text>
+                        <Text style={{ color: Colors.gold, fontSize: 11, marginTop: 8 }}>Tap to read bulletin →</Text>
                       </TouchableOpacity>
+                    ))}
+                    {data.length === 0 && <Text style={styles.empty}>No weekly bulletins found.</Text>}
+                  </View>
+                )}
+              </View>
+            )}
+
+            {/* MINISTRY GROUPS SECTION */}
+            {activeSection === 'ministries' && (
+              <View>
+                {data.map(g => (
+                  <View key={g.id} style={styles.planCard}>
+                    <Text style={styles.planTitle}>⛪ {g.name}</Text>
+                    <Text style={styles.planDesc}>{g.description || 'No description provided.'}</Text>
+                    <Text style={{ color: Colors.gold, fontSize: 12, marginVertical: 8, fontWeight: 'bold' }}>
+                      Leader: {g.leader_name || 'N/A'} • Members: {g.member_count || 0}
+                    </Text>
+                    <TouchableOpacity 
+                      style={[styles.saveBtn, { paddingVertical: 8 }]} 
+                      onPress={() => handleJoinMinistryGroup(g.id)}
+                    >
+                      <Text style={styles.saveBtnText}>Join Ministry Group ⛪</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+                {data.length === 0 && <Text style={styles.empty}>No active ministry groups found.</Text>}
+              </View>
+            )}
+
+            {/* VOLUNTEERING SECTION */}
+            {activeSection === 'volunteering' && (
+              <View>
+                {data.map(opp => (
+                  <View key={opp.id} style={styles.planCard}>
+                    <Text style={styles.planTitle}>🤝 {opp.title}</Text>
+                    <Text style={styles.planDesc}>{opp.description}</Text>
+                    <Text style={{ color: Colors.gold, fontSize: 12, marginVertical: 6, fontWeight: 'bold' }}>
+                      Slots: {opp.signed_up} / {opp.slots} filled
+                    </Text>
+                    
+                    {opp.user_signed_up ? (
+                      <View style={{ marginTop: 8 }}>
+                        <View style={{ backgroundColor: 'rgba(39,201,63,0.1)', padding: 10, borderRadius: Radius.sm, borderWidth: 1, borderColor: '#27c93f', alignItems: 'center', marginBottom: 10 }}>
+                          <Text style={{ color: '#27c93f', fontWeight: 'bold', fontSize: 13 }}>✓ You are registered for this duty</Text>
+                        </View>
+                        {opp.user_instructions ? (
+                          <View style={{ backgroundColor: 'rgba(200,153,26,0.1)', padding: 12, borderRadius: Radius.sm, borderWidth: 1, borderColor: Colors.gold }}>
+                            <Text style={{ color: Colors.gold, fontWeight: 'bold', fontSize: 12, marginBottom: 4 }}>📋 Admin Instructions & Guidance:</Text>
+                            <Text style={{ color: Colors.text, fontSize: 13, lineHeight: 18 }}>{opp.user_instructions}</Text>
+                          </View>
+                        ) : (
+                          <View style={{ backgroundColor: 'rgba(255,255,255,0.03)', padding: 10, borderRadius: Radius.sm, borderWidth: 1, borderColor: Colors.glassBorder }}>
+                            <Text style={{ color: Colors.textMuted, fontSize: 12, fontStyle: 'italic', textAlign: 'center' }}>Awaiting instructions from the Administrator.</Text>
+                          </View>
+                        )}
+                      </View>
+                    ) : (
+                      <TouchableOpacity 
+                        style={[styles.saveBtn, { paddingVertical: 8, marginTop: 5 }, opp.signed_up >= opp.slots && styles.saveBtnDisabled]} 
+                        onPress={() => handleVolunteerSignup(opp.id)}
+                        disabled={opp.signed_up >= opp.slots}
+                      >
+                        <Text style={styles.saveBtnText}>
+                          {opp.signed_up >= opp.slots ? 'Slots Full' : 'Volunteer for this Duty 🤝'}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ))}
+                {data.length === 0 && <Text style={styles.empty}>No volunteer opportunities currently available.</Text>}
+              </View>
+            )}
+
+            {/* EDUCATIONAL RESOURCES SECTION */}
+            {activeSection === 'resources' && (
+              <View>
+                {/* Tabs */}
+                <View style={{ flexDirection: 'row', gap: 10, marginBottom: 15 }}>
+                  <TouchableOpacity 
+                    style={[{ flex: 1, paddingVertical: 10, borderRadius: Radius.sm, alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }, resourceTab === 'parenting' && { backgroundColor: Colors.gold, borderColor: Colors.gold }]}
+                    onPress={() => setResourceTab('parenting')}
+                  >
+                    <Text style={{ color: resourceTab === 'parenting' ? Colors.dark : Colors.text, fontWeight: 'bold' }}>Parenting Guides</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[{ flex: 1, paddingVertical: 10, borderRadius: Radius.sm, alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }, resourceTab === 'youth' && { backgroundColor: Colors.gold, borderColor: Colors.gold }]}
+                    onPress={() => setResourceTab('youth')}
+                  >
+                    <Text style={{ color: resourceTab === 'youth' ? Colors.dark : Colors.text, fontWeight: 'bold' }}>Youth Corner</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {resourceTab === 'parenting' ? (
+                  <View>
+                    {data.parenting && data.parenting.map(item => (
+                      <View key={item.id} style={styles.planCard}>
+                        <Text style={styles.planDuration}>Category: {item.category || 'Parenting'}</Text>
+                        <Text style={styles.planTitle}>{item.title}</Text>
+                        <Text style={styles.planDesc}>{item.content}</Text>
+                      </View>
+                    ))}
+                    {(!data.parenting || data.parenting.length === 0) && <Text style={styles.empty}>No parenting guides published.</Text>}
+                  </View>
+                ) : (
+                  <View>
+                    {data.youth && data.youth.map(item => (
+                      <View key={item.id} style={styles.planCard}>
+                        <Text style={styles.planDuration}>Category: {item.category || 'Youth'}</Text>
+                        <Text style={styles.planTitle}>{item.title}</Text>
+                        <Text style={styles.planDesc}>{item.content}</Text>
+                      </View>
+                    ))}
+                    {(!data.youth || data.youth.length === 0) && <Text style={styles.empty}>No youth resource articles published.</Text>}
+                  </View>
+                )}
+              </View>
+            )}
+
+            {/* PRAYER CALENDAR SECTION */}
+            {activeSection === 'prayer_calendar' && (
+              <View>
+                {(() => {
+                  const markedDates = {};
+                  data.forEach(ev => {
+                    if (ev.event_date) {
+                      markedDates[ev.event_date] = { marked: true, dotColor: Colors.gold };
+                    }
+                  });
+                  if (selectedDate) {
+                    markedDates[selectedDate] = { ...markedDates[selectedDate], selected: true, selectedColor: Colors.gold };
+                  }
+                  
+                  const selectedPrayers = selectedDate ? data.filter(ev => ev.event_date === selectedDate) : [];
+                  const todayString = new Date().toISOString().split('T')[0];
+
+                  return (
+                    <>
+                      <Calendar
+                        current={todayString}
+                        onDayPress={day => setSelectedDate(day.dateString)}
+                        markedDates={markedDates}
+                        theme={{
+                          calendarBackground: Colors.darkCard,
+                          textSectionTitleColor: Colors.textMuted,
+                          selectedDayBackgroundColor: Colors.gold,
+                          selectedDayTextColor: Colors.dark,
+                          todayTextColor: Colors.gold,
+                          dayTextColor: Colors.text,
+                          textDisabledColor: '#444',
+                          dotColor: Colors.gold,
+                          selectedDotColor: Colors.dark,
+                          arrowColor: Colors.gold,
+                          monthTextColor: Colors.gold,
+                          textDayFontWeight: 'bold',
+                          textMonthFontWeight: 'bold',
+                          textDayHeaderFontWeight: '500',
+                          textDayFontSize: 16,
+                          textMonthFontSize: 18,
+                        }}
+                        style={{ borderRadius: Radius.medium, marginBottom: 20, elevation: 5 }}
+                      />
+
+                      <Text style={styles.sectionTitle}>
+                        {selectedDate ? `Prayers for ${selectedDate}` : 'Select a date to view prayers'}
+                      </Text>
+                      
+                      {selectedDate && selectedPrayers.length === 0 && (
+                        <Text style={styles.empty}>No specific prayers scheduled for this date.</Text>
+                      )}
+
+                      {selectedPrayers.map(event => {
+                        const hasReminder = myReminders.some(r => r.reminder_time.startsWith(event.event_date));
+                        return (
+                          <View key={event.id} style={styles.planCard}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                              <Text style={styles.planDuration}>{event.event_type || 'Prayer'}</Text>
+                            </View>
+                            <Text style={styles.planTitle}>{event.title}</Text>
+                            <Text style={styles.planDesc}>{event.description}</Text>
+                            
+                            <TouchableOpacity 
+                              style={[styles.saveBtn, { paddingVertical: 8, marginTop: 12, backgroundColor: hasReminder ? 'rgba(255,255,255,0.08)' : Colors.gold }]} 
+                              onPress={() => handleToggleReminder(event)}
+                            >
+                              <Text style={[styles.saveBtnText, { color: hasReminder ? Colors.text : Colors.dark }]}>
+                                {hasReminder ? '🔔 Reminder Set (Tap to Remove)' : '🔕 Set Alert Reminder'}
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                        );
+                      })}
+                    </>
+                  );
+                })()}
+              </View>
+            )}
+
+            {/* SONG REQUESTS SECTION */}
+            {activeSection === 'song_requests' && (
+              <View>
+                <View style={styles.composeCard}>
+                  <Text style={styles.composeTitle}>Request a Worship Song</Text>
+                  <TextInput 
+                    style={styles.input} 
+                    placeholder="Song Title (e.g. How Great Thou Art)" 
+                    placeholderTextColor="#888"
+                    value={songTitleInput}
+                    onChangeText={setSongTitleInput}
+                  />
+                  <TextInput 
+                    style={styles.input} 
+                    placeholder="Occasion / Prayer Intent (Optional)" 
+                    placeholderTextColor="#888"
+                    value={songOccasionInput}
+                    onChangeText={setSongOccasionInput}
+                  />
+                  <TouchableOpacity 
+                    style={[styles.saveBtn, !songTitleInput.trim() && styles.saveBtnDisabled]} 
+                    onPress={handleSubmitSongRequest}
+                    disabled={!songTitleInput.trim() || submittingSongRequest}
+                  >
+                    {submittingSongRequest ? <ActivityIndicator color={Colors.dark} /> : <Text style={styles.saveBtnText}>Submit Song Request 🎵</Text>}
+                  </TouchableOpacity>
+                </View>
+
+                <Text style={styles.sectionLabel}>RECENT SONG REQUESTS ({data.length})</Text>
+                {data.map(req => (
+                  <View key={req.id} style={styles.fastCard}>
+                    <Text style={{ color: Colors.text, fontWeight: 'bold', fontSize: 15 }}>🎵 {req.song_title}</Text>
+                    {req.occasion ? <Text style={{ color: Colors.textMuted, fontSize: 12, marginTop: 2 }}>Occasion: {req.occasion}</Text> : null}
+                    <Text style={{ color: Colors.textDim, fontSize: 11, marginTop: 4 }}>Requested by: {req.member_name}</Text>
+                    
+                    <View style={{ alignSelf: 'flex-start', marginTop: 10, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, backgroundColor: req.status === 'approved' ? 'rgba(39,201,63,0.1)' : req.status === 'rejected' ? 'rgba(255,59,48,0.1)' : 'rgba(255,255,255,0.05)' }}>
+                      <Text style={{ fontSize: 11, fontWeight: 'bold', color: req.status === 'approved' ? '#27c93f' : req.status === 'rejected' ? Colors.error : Colors.textMuted, textTransform: 'uppercase' }}>
+                        {req.status}
+                      </Text>
                     </View>
                   </View>
                 ))}
+                {data.length === 0 && <Text style={styles.empty}>No song requests made yet.</Text>}
               </View>
             )}
             <View style={{ height: 40 }} />
@@ -1048,6 +1612,62 @@ export default function MoreScreen() {
           </View>
         </Modal>
 
+        {/* Global Podcast Player */}
+        {playingPodcastId && playingPodcast && (
+          <View style={styles.floatingPlayer}>
+            <View style={styles.playerInfoRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.playerTitle} numberOfLines={1}>
+                  {lang === 'ta' && playingPodcast.title_tamil ? playingPodcast.title_tamil : playingPodcast.title}
+                </Text>
+                <Text style={styles.playerPastor} numberOfLines={1}>
+                  🎤 {playingPodcast.pastor || t('pastor')}
+                </Text>
+              </View>
+              <TouchableOpacity 
+                style={styles.playerPlayBtn} 
+                onPress={() => handlePlayPodcast(playingPodcast)}
+              >
+                <Text style={styles.playerPlayIcon}>{isPlaying ? '⏸' : '▶'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.playerCloseBtn} 
+                onPress={async () => {
+                  if (sound) {
+                    await sound.unloadAsync();
+                    setSound(null);
+                  }
+                  setPlayingPodcastId(null);
+                  setPlayingPodcast(null);
+                  setIsPlaying(false);
+                  setPlaybackPos(0);
+                  setPlaybackDur(0);
+                }}
+              >
+                <Text style={styles.playerCloseIcon}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <TouchableOpacity 
+              style={styles.progressBarBg} 
+              onLayout={(e) => setProgressBarWidth(e.nativeEvent.layout.width || 1)}
+              onPress={(e) => {
+                const clickX = e.nativeEvent.locationX;
+                const pct = Math.max(0, Math.min(1, clickX / progressBarWidth));
+                handleSeekPodcast(pct * playbackDur);
+              }}
+              activeOpacity={0.9}
+            >
+              <View style={[styles.progressBarFill, { width: `${playbackDur > 0 ? (playbackPos / playbackDur) * 100 : 0}%` }]} />
+            </TouchableOpacity>
+            
+            <View style={styles.playerTimeRow}>
+              <Text style={styles.playerTimeText}>{formatTime(playbackPos)}</Text>
+              <Text style={styles.playerTimeText}>{formatTime(playbackDur)}</Text>
+            </View>
+          </View>
+        )}
+
       </SafeAreaView>
     );
   }
@@ -1086,6 +1706,63 @@ export default function MoreScreen() {
           <Text style={styles.aboutText}>Version 1.0.0 (Expo Platform)</Text>
         </View>
       </ScrollView>
+
+      {/* Global Podcast Player */}
+      {playingPodcastId && playingPodcast && (
+        <View style={styles.floatingPlayer}>
+          <View style={styles.playerInfoRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.playerTitle} numberOfLines={1}>
+                {lang === 'ta' && playingPodcast.title_tamil ? playingPodcast.title_tamil : playingPodcast.title}
+              </Text>
+              <Text style={styles.playerPastor} numberOfLines={1}>
+                🎤 {playingPodcast.pastor || t('pastor')}
+              </Text>
+            </View>
+            <TouchableOpacity 
+              style={styles.playerPlayBtn} 
+              onPress={() => handlePlayPodcast(playingPodcast)}
+            >
+              <Text style={styles.playerPlayIcon}>{isPlaying ? '⏸' : '▶'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.playerCloseBtn} 
+              onPress={async () => {
+                if (sound) {
+                  await sound.unloadAsync();
+                  setSound(null);
+                }
+                setPlayingPodcastId(null);
+                setPlayingPodcast(null);
+                setIsPlaying(false);
+                setPlaybackPos(0);
+                setPlaybackDur(0);
+              }}
+            >
+              <Text style={styles.playerCloseIcon}>✕</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <TouchableOpacity 
+            style={styles.progressBarBg} 
+            onLayout={(e) => setProgressBarWidth(e.nativeEvent.layout.width || 1)}
+            onPress={(e) => {
+              const clickX = e.nativeEvent.locationX;
+              const pct = Math.max(0, Math.min(1, clickX / progressBarWidth));
+              handleSeekPodcast(pct * playbackDur);
+            }}
+            activeOpacity={0.9}
+          >
+            <View style={[styles.progressBarFill, { width: `${playbackDur > 0 ? (playbackPos / playbackDur) * 100 : 0}%` }]} />
+          </TouchableOpacity>
+          
+          <View style={styles.playerTimeRow}>
+            <Text style={styles.playerTimeText}>{formatTime(playbackPos)}</Text>
+            <Text style={styles.playerTimeText}>{formatTime(playbackDur)}</Text>
+          </View>
+        </View>
+      )}
+
     </SafeAreaView>
   );
 }
@@ -1093,7 +1770,7 @@ export default function MoreScreen() {
 const styles = StyleSheet.create({
   menuBtn: { padding: 4, marginRight: 8, alignSelf: 'center' },
   menuBtnText: { fontSize: 24, color: Colors.gold, fontWeight: 'bold' },
-  safe: { flex: 1, backgroundColor: Colors.dark },
+  safe: { flex: 1, backgroundColor: Colors.dark, paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 },
   header: { padding: Spacing.md, backgroundColor: Colors.dark2, borderBottomWidth: 1, borderBottomColor: Colors.glassBorder },
   title: { fontSize: 20, fontWeight: '800', color: Colors.text, marginTop: 4 },
   subtitle: { fontSize: 13, color: Colors.textMuted, marginTop: 2 },
@@ -1160,5 +1837,70 @@ const styles = StyleSheet.create({
   // Modals
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center', padding: Spacing.lg },
   modalContainer: { width: '100%', backgroundColor: Colors.darkCard, borderRadius: Radius.md, padding: Spacing.lg, borderWidth: 1, borderColor: Colors.glassBorder },
-  modalTitle: { fontSize: 18, fontWeight: '800', color: Colors.gold, marginBottom: 15 }
+  modalTitle: { fontSize: 18, fontWeight: '800', color: Colors.gold, marginBottom: 15 },
+
+  // Floating Player
+  floatingPlayer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: Colors.dark2,
+    borderTopWidth: 1,
+    borderTopColor: Colors.glassBorder,
+    padding: Spacing.md,
+    zIndex: 9999
+  },
+  playerInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10
+  },
+  playerTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: Colors.text
+  },
+  playerPastor: {
+    fontSize: 11,
+    color: Colors.gold,
+    marginTop: 2
+  },
+  playerPlayBtn: {
+    padding: 8,
+    marginRight: 10
+  },
+  playerPlayIcon: {
+    fontSize: 22,
+    color: Colors.gold
+  },
+  playerCloseBtn: {
+    padding: 8
+  },
+  playerCloseIcon: {
+    fontSize: 16,
+    color: Colors.textDim
+  },
+  progressBarBg: {
+    height: 4,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 2,
+    width: '100%',
+    marginVertical: 4
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: Colors.gold,
+    borderRadius: 2
+  },
+  playerTimeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 4
+  },
+  playerTimeText: {
+    fontSize: 10,
+    color: Colors.textDim
+  }
 });

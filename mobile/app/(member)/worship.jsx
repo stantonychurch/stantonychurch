@@ -59,11 +59,17 @@ export default function WorshipScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <View style={{flexDirection: 'row', alignItems: 'center'}}>
-          <TouchableOpacity onPress={toggleDrawer} style={styles.menuBtn}><Text style={styles.menuBtnText}>☰</Text></TouchableOpacity>
-          <Text style={styles.title}>{t('worship_hymns_title')}</Text>
-        </View>
+      <View style={[styles.header, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
+        <TouchableOpacity onPress={toggleDrawer} style={styles.menuBtn}>
+          <Text style={{ fontSize: 24, color: Colors.gold, fontWeight: 'bold' }}>☰</Text>
+        </TouchableOpacity>
+        <View style={{ flex: 1, alignItems: 'center' }}><View style={{flexDirection: 'row', alignItems: 'center'}}>
+          
+          <Text style={styles.title}>{t('worship_hymns_title')}</Text></View>
+        <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }}>
+          <Text style={{ fontSize: 16, color: Colors.gold }}>🔙 {t('back') || 'Back'}</Text>
+        </TouchableOpacity>
+      </View>
         <Text style={styles.subtitle}>{t('lyrics_praise')}</Text>
       </View>
 

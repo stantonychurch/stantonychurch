@@ -330,6 +330,10 @@ async function initDatabase() {
             await db.query('ALTER TABLE devotionals ADD COLUMN content_tamil TEXT');
             console.log('✅ Added content_tamil column to devotionals');
         } catch (err) {}
+        try {
+            await db.query('ALTER TABLE devotionals ADD COLUMN prayer TEXT');
+            console.log('✅ Added prayer column to devotionals');
+        } catch (err) {}
 
         const { initExtendedSchema } = require('./database-ext');
         await initExtendedSchema(db);

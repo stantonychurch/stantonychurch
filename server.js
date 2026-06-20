@@ -90,14 +90,14 @@ app.get('/api/admin/likes', require('./middleware/auth').authenticateToken, requ
 app.post('/api/admin/reset', require('./middleware/auth').authenticateToken, require('./middleware/auth').requireAdmin, async (req, res) => {
     const { db } = require('./database');
     try {
-        const [rows] = await db.query("SHOW TABLES");
-        for (const row of rows) {
-            const tableName = Object.values(row)[0];
-            if (tableName !== 'admins' && tableName !== 'members') {
+        const [tables] = await db.query("SELECT name FROM sqlite_master WHERE type='table'");
+        for (const row of tables) {
+            const tableName = row.name;
+            if (tableName !== 'admins' && tableName !== 'sqlite_sequence') {
                 await db.query(`DELETE FROM ${tableName}`);
             }
         }
-        res.json({ message: 'Database reset successful. Members were retained.' });
+        res.json({ message: 'Database reset successful. All content wiped except Admins.' });
     } catch (e) {
         res.status(500).json({ error: e.message });
     }

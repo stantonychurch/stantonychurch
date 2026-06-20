@@ -82,13 +82,16 @@ export default function FamilyScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={[styles.header, { flexDirection: 'row', alignItems: 'center', gap: 10 }]}>
+      <View style={[styles.header, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
         <TouchableOpacity onPress={toggleDrawer} style={styles.menuBtn}>
-          <Text style={styles.menuBtnText}>☰</Text>
+          <Text style={{ fontSize: 24, color: Colors.gold, fontWeight: 'bold' }}>☰</Text>
         </TouchableOpacity>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>{t('family_connection')}</Text>
-        </View>
+        <View style={{ flex: 1, alignItems: 'center' }}><View style={{ flex: 1 }}>
+          <Text style={styles.headerTitle}>{t('family_connection')}</Text></View>
+        <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }}>
+          <Text style={{ fontSize: 16, color: Colors.gold }}>🔙 {t('back') || 'Back'}</Text>
+        </TouchableOpacity>
+      </View>
       </View>
       <ScrollView contentContainerStyle={styles.scroll}>
         

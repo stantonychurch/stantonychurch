@@ -1,4 +1,5 @@
 import { useEffect, useState, useContext } from 'react';
+import { useRouter } from 'expo-router';
 import { View, Text, ScrollView, StyleSheet, SafeAreaView, RefreshControl, TouchableOpacity } from 'react-native';
 import { getEvents } from '../../src/services/api';
 import { Colors, Spacing, Radius } from '../../src/config/theme';
@@ -7,6 +8,7 @@ import { useLanguage } from '../../src/context/LanguageContext';
 
 export default function EventsScreen() {
   const { toggleDrawer } = useContext(DrawerContext);
+  const router = useRouter();
   const { t, lang } = useLanguage();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -22,14 +24,17 @@ export default function EventsScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={[styles.header, { flexDirection: 'row', alignItems: 'center', gap: 10 }]}>
+      <View style={[styles.header, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
         <TouchableOpacity onPress={toggleDrawer} style={styles.menuBtn}>
-          <Text style={styles.menuBtnText}>☰</Text>
+          <Text style={{ fontSize: 24, color: Colors.gold, fontWeight: 'bold' }}>☰</Text>
         </TouchableOpacity>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, alignItems: 'center' }}><View style={{ flex: 1 }}>
           <Text style={styles.title}>{t('church_events_title')}</Text>
-          <Text style={styles.subtitle}>{t('church_events_subtitle')}</Text>
-        </View>
+          <Text style={styles.subtitle}>{t('church_events_subtitle')}</Text></View>
+        <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }}>
+          <Text style={{ fontSize: 16, color: Colors.gold }}>🔙 {t('back') || 'Back'}</Text>
+        </TouchableOpacity>
+      </View>
       </View>
       <ScrollView
         contentContainerStyle={styles.list}

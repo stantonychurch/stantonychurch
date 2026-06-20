@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useContext } from 'react';
+import { useRouter } from 'expo-router';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, TextInput, Alert, ActivityIndicator, Image } from 'react-native';
 import { Colors, Spacing, Radius } from '../../src/config/theme';
 import { getPlatform, postPlatform } from '../../src/services/api';
@@ -11,6 +12,7 @@ import { useLanguage } from '../../src/context/LanguageContext';
 
 export default function YouthScreen() {
   const { toggleDrawer } = useContext(DrawerContext);
+  const router = useRouter();
   const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState(null); // 'pending', 'approved', null
@@ -61,13 +63,16 @@ export default function YouthScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={[styles.header, { flexDirection: 'row', alignItems: 'center', gap: 10 }]}>
+      <View style={[styles.header, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
         <TouchableOpacity onPress={toggleDrawer} style={styles.menuBtn}>
-          <Text style={styles.menuBtnText}>☰</Text>
+          <Text style={{ fontSize: 24, color: Colors.gold, fontWeight: 'bold' }}>☰</Text>
         </TouchableOpacity>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>{t('youth_corner')}</Text>
-        </View>
+        <View style={{ flex: 1, alignItems: 'center' }}><View style={{ flex: 1 }}>
+          <Text style={styles.headerTitle}>{t('youth_corner')}</Text></View>
+        <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }}>
+          <Text style={{ fontSize: 16, color: Colors.gold }}>🔙 {t('back') || 'Back'}</Text>
+        </TouchableOpacity>
+      </View>
       </View>
       
       {loading ? (

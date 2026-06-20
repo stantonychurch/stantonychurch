@@ -4,7 +4,7 @@ import { API_BASE_URL } from '../config/api';
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 15000,
+  timeout: 45000,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -14,6 +14,25 @@ apiClient.interceptors.request.use(async (config) => {
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
+
+// Attach retry logic for cold-start timeouts
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const config = error.config;
+    if (
+      config &&
+      (error.code === 'ECONNABORTED' || !error.response) &&
+      (!config.__retryCount || config.__retryCount < 2)
+    ) {
+      config.__retryCount = (config.__retryCount || 0) + 1;
+      console.log(`Connection failed/timeout. Retrying request (${config.__retryCount}/2)...`);
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      return apiClient(config);
+    }
+    return Promise.reject(error);
+  }
+);
 
 // Auth
 export const memberLogin = (data) => apiClient.post('/auth/member/login', data);

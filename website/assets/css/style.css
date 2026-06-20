@@ -1,0 +1,354 @@
+:root {
+    --bg-color: #FAF9F6;
+    --text-color: #2C3E50;
+    --gold: #D4AF37;
+    --copper: #A0522D;
+    --dark-copper: #703b20;
+    --glass-bg: rgba(255, 255, 255, 0.85);
+    --glass-border: rgba(255, 255, 255, 0.3);
+    --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    color: var(--text-color);
+    line-height: 1.6;
+    background-color: var(--bg-color);
+}
+
+h1, h2, h3, h4 {
+    font-family: 'Playfair Display', serif;
+}
+
+.text-gold {
+    color: var(--gold);
+}
+
+/* PARALLAX BACKGROUND */
+.parallax-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-image: url('../img/bg.jpg');
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    z-index: -1;
+}
+
+/* NAVIGATION */
+.navbar {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    padding: 1rem 5%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    box-shadow: var(--shadow);
+    z-index: 100;
+}
+
+.nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: var(--dark-copper);
+}
+
+.nav-logo {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.nav-links {
+    list-style: none;
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.nav-links a {
+    text-decoration: none;
+    color: var(--text-color);
+    font-weight: 600;
+    transition: 0.3s;
+}
+
+.nav-links a:hover {
+    color: var(--copper);
+}
+
+.nav-btn {
+    background-color: var(--gold);
+    padding: 8px 16px;
+    border-radius: 20px;
+    color: #fff !important;
+}
+
+.nav-btn:hover {
+    background-color: var(--copper);
+}
+
+/* CONTENT WRAPPER */
+.content-wrapper {
+    margin-top: 80px;
+    padding: 0 5%;
+}
+
+/* GLASS SECTIONS */
+.glass-section {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    padding: 40px;
+    margin: 40px 0;
+    box-shadow: var(--shadow);
+}
+
+.section-title {
+    text-align: center;
+    font-size: 2.5rem;
+    color: var(--dark-copper);
+    margin-bottom: 30px;
+}
+
+/* HERO SECTION */
+.hero-section {
+    text-align: center;
+    margin-top: 100px;
+    padding: 60px 20px;
+}
+
+.hero-logo {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.church-title {
+    font-size: 3.5rem;
+    color: var(--dark-copper);
+    margin-bottom: 10px;
+}
+
+.subtitle {
+    font-size: 1.2rem;
+    color: var(--copper);
+    font-weight: 600;
+    margin-bottom: 30px;
+}
+
+.welcome-text {
+    font-size: 2rem;
+    margin-bottom: 40px;
+}
+
+.hero-grid {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin-bottom: 40px;
+}
+
+/* CARDS & GRIDS */
+.card {
+    background: rgba(255, 255, 255, 0.6);
+    padding: 25px;
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.8);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+    transition: transform 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.card h3 {
+    color: var(--copper);
+    margin-bottom: 15px;
+    font-size: 1.5rem;
+}
+
+.card p {
+    margin-bottom: 15px;
+}
+
+.grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 25px;
+}
+
+.grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 25px;
+}
+
+.p-0 {
+    padding: 0;
+    overflow: hidden;
+}
+
+/* BUTTONS */
+.btn {
+    display: inline-block;
+    padding: 12px 30px;
+    border-radius: 30px;
+    text-decoration: none;
+    font-weight: bold;
+    transition: 0.3s;
+    cursor: pointer;
+}
+
+.btn-primary {
+    background-color: var(--gold);
+    color: #fff;
+    border: 2px solid var(--gold);
+}
+
+.btn-primary:hover {
+    background-color: var(--copper);
+    border-color: var(--copper);
+}
+
+.btn-outline {
+    background-color: transparent;
+    color: var(--dark-copper);
+    border: 2px solid var(--dark-copper);
+}
+
+.btn-outline:hover {
+    background-color: var(--dark-copper);
+    color: #fff;
+}
+
+.hero-actions {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+}
+
+/* TIMING CARDS */
+.timing-card {
+    text-align: center;
+}
+
+.timing-card i {
+    font-size: 2.5rem;
+    margin-bottom: 15px;
+}
+
+.timing-card ul {
+    list-style: none;
+    text-align: left;
+}
+
+.timing-card li {
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+/* PRIEST CARDS */
+.staff-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 30px;
+}
+
+.profile-card {
+    text-align: center;
+}
+
+.profile-img {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin: 0 auto 15px;
+    border: 4px solid var(--gold);
+}
+
+.placeholder-img {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    margin: 0 auto 15px;
+    background: #eee;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    color: #aaa;
+    border: 4px solid #ddd;
+}
+
+.role {
+    color: var(--text-color);
+    font-weight: 600;
+}
+
+/* LISTS */
+.event-list, .contact-list {
+    list-style: none;
+}
+
+.event-list li, .contact-list li {
+    margin-bottom: 15px;
+}
+
+.event-list i, .contact-list i {
+    color: var(--gold);
+    width: 25px;
+}
+
+/* FOOTER */
+.footer {
+    text-align: center;
+    padding: 20px;
+    background: var(--dark-copper);
+    color: #fff;
+    margin-top: 40px;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+    .grid-2, .grid-3 {
+        grid-template-columns: 1fr;
+    }
+    
+    .hero-grid {
+        flex-direction: column;
+    }
+    
+    .nav-links {
+        display: none; /* Mobile menu hidden for simplicity in dummy version */
+    }
+    
+    .church-title {
+        font-size: 2.5rem;
+    }
+}

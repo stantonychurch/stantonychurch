@@ -1,7 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
-import { View, Text, ScrollView, StyleSheet, SafeAreaView, TouchableOpacity, ActivityIndicator, RefreshControl, TextInput, Alert, Animated, useWindowDimensions, Switch, Image } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, SafeAreaView, TouchableOpacity, ActivityIndicator, RefreshControl, TextInput, Alert, Animated, useWindowDimensions, Switch, Image, Modal } from 'react-native';
+import { Calendar } from 'react-native-calendars';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../src/context/AuthContext';
+import { useLanguage } from '../../src/context/LanguageContext';
 import apiClient, { getPlatform, postPlatform } from '../../src/services/api';
 import { API_BASE_URL } from '../../src/config/api';
 import { Colors, Spacing, Radius } from '../../src/config/theme';
@@ -12,6 +14,7 @@ import * as DocumentPicker from 'expo-document-picker';
 
 export default function AdminDashboardScreen() {
   const { user, logout } = useAuth();
+  const { t, lang } = useLanguage();
   const router = useRouter();
   
   // Tab state: 'overview', 'members', 'groups', 'approvals', 'videos', 'audio', 'events', 'announcements', 'prayers', 'activity'
@@ -62,6 +65,43 @@ export default function AdminDashboardScreen() {
   const [activeSubTab, setActiveSubTab] = useState('comments');
   const [memberSearch, setMemberSearch] = useState('');
 
+  // --- MINISTRIES CHAT HANDLERS ---
+  const [ministryChatOpen, setMinistryChatOpen] = useState(false);
+  const [activeMinistry, setActiveMinistry] = useState(null);
+  const [ministryMessages, setMinistryMessages] = useState([]);
+  const [ministryChatInput, setMinistryChatInput] = useState('');
+  const [chatId, setChatId] = useState(null);
+  
+  const handleOpenMinistryChat = async (min) => {
+    setActiveMinistry(min);
+    setMinistryChatOpen(true);
+    setLoading(true);
+    try {
+      const res = await getPlatform(`/ministry-groups/${min.id}/chat`);
+      setChatId(res.data?.chat_id);
+      setMinistryMessages(res.data?.messages || []);
+    } catch (e) {
+      Alert.alert('Error', e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSendMinistryMessage = async () => {
+    if (!ministryChatInput.trim() || !chatId) return;
+    try {
+      await postPlatform(`/ministry-groups/${activeMinistry.id}/chat`, {
+        message: ministryChatInput.trim(),
+        chat_id: chatId
+      });
+      setMinistryChatInput('');
+      const res = await getPlatform(`/ministry-groups/${activeMinistry.id}/chat`);
+      setMinistryMessages(res.data?.messages || []);
+    } catch (e) {
+      Alert.alert('Error', e.message);
+    }
+  };
+
   // --- VERSES HANDLERS ---
   const handleCreateVerse = async () => {
     if (!verseForm.verse || !verseForm.reference) return Alert.alert('Error', 'Verse and Reference are required');
@@ -96,6 +136,219 @@ export default function AdminDashboardScreen() {
   const [scheduleForm, setScheduleForm] = useState({ day_of_week: 'Sunday', service_time: '', description: '' });
   const [podcasts, setPodcasts] = useState([]);
   const [podcastForm, setPodcastForm] = useState({ title: '', description: '', url: '' });
+
+  // Missing Options Admin States & Actions
+  const [adminVolunteers, setAdminVolunteers] = useState([]);
+  const [volunteerForm, setVolunteerForm] = useState({ title: '', description: '', slots: '10' });
+  const [selectedVolId, setSelectedVolId] = useState(null);
+  const [volSignups, setVolSignups] = useState([]);
+  const [volNotes, setVolNotes] = useState({});
+  const [aiChatLogs, setAiChatLogs] = useState([]);
+  const [adminBulletins, setAdminBulletins] = useState([]);
+  const [bulletinForm, setBulletinForm] = useState({ title: '', content: '', week_date: '' });
+  const [adminMinistries, setAdminMinistries] = useState([]);
+  const [ministryForm, setMinistryForm] = useState({ name: '', description: '', leader_name: '' });
+  const [parentingArticles, setParentingArticles] = useState([]);
+  const [youthArticles, setYouthArticles] = useState([]);
+  const [resourceForm, setResourceForm] = useState({ title: '', content: '', category: 'Parenting' });
+  const [adminSongRequests, setAdminSongRequests] = useState([]);
+  const [adminPrayerCalendar, setAdminPrayerCalendar] = useState([]);
+  const [prayerCalendarForm, setPrayerCalendarForm] = useState({ title: '', event_date: '', description: '', event_type: 'Prayer' });
+
+  // About Manager States & Actions
+  const [aboutForm, setAboutForm] = useState({ value: '', value_tamil: '' });
+  const [priestForm, setPriestForm] = useState({ value: '', value_tamil: '' });
+  const [priestImage, setPriestImage] = useState(null);
+  const [uploadingPriestImage, setUploadingPriestImage] = useState(false);
+  const [updatingAbout, setUpdatingAbout] = useState(false);
+
+  async function handleUpdateAbout() {
+    if (!aboutForm.value.trim() || !aboutForm.value_tamil.trim()) {
+      return Alert.alert('Required', 'Please fill in both English and Tamil descriptions');
+    }
+    setUpdatingAbout(true);
+    try {
+      await postPlatform('/church-info/about', {
+        value: aboutForm.value.trim(),
+        value_tamil: aboutForm.value_tamil.trim()
+      });
+      Alert.alert('Success', 'About description updated successfully!');
+      loadData();
+    } catch (e) {
+      Alert.alert('Error', e.message);
+    } finally {
+      setUpdatingAbout(false);
+    }
+  }
+
+  const handlePickPriestImage = async () => {
+    try {
+      const res = await DocumentPicker.getDocumentAsync({ type: 'image/*' });
+      if (!res.canceled && res.assets && res.assets.length > 0) {
+        setPriestImage(res.assets[0]);
+      }
+    } catch (e) {
+      console.log(e);
+    }
+  };
+
+  const handleUploadPriestImage = async () => {
+    if (!priestImage) return Alert.alert('Required', 'Please select an image first.');
+    setUploadingPriestImage(true);
+    try {
+      const formData = new FormData();
+      formData.append('image', {
+        uri: priestImage.uri,
+        name: 'priest_image.jpeg',
+        type: priestImage.mimeType || 'image/jpeg'
+      });
+      await apiClient.post('/platform/upload-priest-image', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 600000
+      });
+      Alert.alert('Success', 'Priest image uploaded successfully!');
+      setPriestImage(null);
+    } catch (e) {
+      Alert.alert('Error', e.message);
+    } finally {
+      setUploadingPriestImage(false);
+    }
+  };
+
+  async function handleUpdatePriest() {
+    if (!priestForm.value.trim() || !priestForm.value_tamil.trim()) {
+      return Alert.alert('Required', 'Please fill in both English and Tamil priest details');
+    }
+    setUpdatingAbout(true);
+    try {
+      await postPlatform('/church-info/priest', {
+        value: priestForm.value.trim(),
+        value_tamil: priestForm.value_tamil.trim()
+      });
+      Alert.alert('Success', 'Priest info updated successfully!');
+      loadData();
+    } catch (e) {
+      Alert.alert('Error', e.message);
+    } finally {
+      setUpdatingAbout(false);
+    }
+  }
+
+  async function handleCreateVolunteer() {
+    if (!volunteerForm.title.trim()) return Alert.alert('Required', 'Enter volunteer task title');
+    try {
+      await postPlatform('/volunteers', {
+        title: volunteerForm.title.trim(),
+        description: volunteerForm.description.trim(),
+        slots: parseInt(volunteerForm.slots) || 10
+      });
+      Alert.alert('Success', 'Volunteer task created!');
+      setVolunteerForm({ title: '', description: '', slots: '10' });
+      loadData();
+    } catch (e) { Alert.alert('Error', e.message); }
+  }
+
+  async function handleViewSignups(volId) {
+    if (selectedVolId === volId) {
+      setSelectedVolId(null);
+      setVolSignups([]);
+      return;
+    }
+    try {
+      const res = await getPlatform(`/volunteers/${volId}/signups`);
+      setVolSignups(res.data || []);
+      setSelectedVolId(volId);
+    } catch (e) { Alert.alert('Error', e.message); }
+  }
+
+  async function handleSaveInstructions(signupId, instructions) {
+    try {
+      await postPlatform(`/volunteers/signups/${signupId}/instructions`, { instructions });
+      Alert.alert('Success', 'Instructions assigned successfully!');
+      const res = await getPlatform(`/volunteers/${selectedVolId}/signups`);
+      setVolSignups(res.data || []);
+    } catch (e) { Alert.alert('Error', e.message); }
+  }
+
+  async function handleCreateBulletin() {
+    if (!bulletinForm.title.trim()) return Alert.alert('Required', 'Enter bulletin title');
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      await postPlatform('/bulletins', {
+        title: bulletinForm.title.trim(),
+        content: bulletinForm.content.trim(),
+        week_date: bulletinForm.week_date || today
+      });
+      Alert.alert('Success', 'Bulletin published!');
+      setBulletinForm({ title: '', content: '', week_date: '' });
+      loadData();
+    } catch (e) { Alert.alert('Error', e.message); }
+  }
+
+  async function handleCreateMinistry() {
+    if (!ministryForm.name.trim()) return Alert.alert('Required', 'Enter ministry name');
+    try {
+      await postPlatform('/ministry-groups', {
+        name: ministryForm.name.trim(),
+        description: ministryForm.description.trim(),
+        leader_name: ministryForm.leader_name.trim()
+      });
+      Alert.alert('Success', 'Ministry group created!');
+      setMinistryForm({ name: '', description: '', leader_name: '' });
+      loadData();
+    } catch (e) { Alert.alert('Error', e.message); }
+  }
+
+  async function handleCreateResource() {
+    if (!resourceForm.title.trim() || !resourceForm.content.trim()) return Alert.alert('Required', 'Title and content required');
+    try {
+      const path = resourceForm.category === 'Parenting' ? '/parenting' : '/youth-corner';
+      await postPlatform(path, {
+        title: resourceForm.title.trim(),
+        content: resourceForm.content.trim()
+      });
+      Alert.alert('Success', 'Article published!');
+      setResourceForm({ title: '', content: '', category: 'Parenting' });
+      loadData();
+    } catch (e) { Alert.alert('Error', e.message); }
+  }
+
+  async function handleCreatePrayerCalendar() {
+    if (!prayerCalendarForm.title.trim() || !prayerCalendarForm.event_date.trim()) return Alert.alert('Required', 'Title and date required');
+    try {
+      await postPlatform('/prayer-calendar', {
+        title: prayerCalendarForm.title.trim(),
+        event_date: prayerCalendarForm.event_date.trim(),
+        description: prayerCalendarForm.description.trim(),
+        event_type: prayerCalendarForm.event_type
+      });
+      Alert.alert('Success', 'Prayer event added!');
+      setPrayerCalendarForm({ title: '', event_date: '', description: '', event_type: 'Prayer' });
+      loadData();
+    } catch (e) { Alert.alert('Error', e.message); }
+  }
+
+  async function handleModerateSongRequest(reqId, status) {
+    try {
+      await apiClient.patch(`/platform/song-requests/${reqId}/status`, { status });
+      Alert.alert('Success', `Song request marked as ${status}`);
+      loadData();
+    } catch (e) { Alert.alert('Error', e.message); }
+  }
+
+  async function handleDeleteAdminItem(route, id) {
+    Alert.alert('Delete', 'Are you sure you want to delete this item?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: async () => {
+        try {
+          await apiClient.delete(`/platform/${route}/${id}`);
+          Alert.alert('Success', 'Item deleted');
+          loadData();
+        } catch (e) { Alert.alert('Error', e.message); }
+      }}
+    ]);
+  }
+
   const [galleries, setGalleries] = useState([]);
   const [galleryForm, setGalleryForm] = useState({ title: '', description: '' });
   const [adminSelectedGallery, setAdminSelectedGallery] = useState(null);
@@ -105,6 +358,7 @@ export default function AdminDashboardScreen() {
   const [familyMessage, setFamilyMessage] = useState({});
   const [prayerReply, setPrayerReply] = useState({});
   const [verses, setVerses] = useState([]);
+  const [memorizations, setMemorizations] = useState([]);
   const [verseForm, setVerseForm] = useState({ verse: '', reference: '' });
   
   const [youthGroups, setYouthGroups] = useState([]);
@@ -352,6 +606,9 @@ export default function AdminDashboardScreen() {
       } else if (activeTab === 'verses') {
         const res = await apiClient.get('/verses');
         setVerses(Array.isArray(res.data) ? res.data : []);
+      } else if (activeTab === 'memorization_admin') {
+        const res = await getPlatform('/global-memorizations');
+        setMemorizations(Array.isArray(res.data) ? res.data : []);
       } else if (activeTab === 'activity') {
         const res = await apiClient.get('/devotionals');
         setDevotionals(res.data || []);
@@ -423,6 +680,37 @@ export default function AdminDashboardScreen() {
           comments: cRes.data || [],
           likes: lRes.data || [],
         });
+      } else if (activeTab === 'volunteer_admin') {
+        const res = await getPlatform('/volunteers');
+        setAdminVolunteers(res.data || []);
+      } else if (activeTab === 'ai_logs_admin') {
+        const res = await getPlatform('/ai-chat-log');
+        setAiChatLogs(res.data || []);
+      } else if (activeTab === 'bulletins_admin') {
+        const res = await getPlatform('/bulletins');
+        setAdminBulletins(res.data || []);
+      } else if (activeTab === 'ministries_admin') {
+        const res = await getPlatform('/ministry-groups');
+        setAdminMinistries(res.data || []);
+      } else if (activeTab === 'resources_admin') {
+        const [parentingRes, youthRes] = await Promise.all([
+          getPlatform('/parenting'),
+          getPlatform('/youth-corner')
+        ]);
+        setParentingArticles(parentingRes.data || []);
+        setYouthArticles(youthRes.data || []);
+      } else if (activeTab === 'song_requests_admin') {
+        const res = await getPlatform('/song-requests');
+        setAdminSongRequests(res.data || []);
+      } else if (activeTab === 'prayer_calendar_admin') {
+        const res = await getPlatform('/prayer-calendar');
+        setAdminPrayerCalendar(res.data || []);
+      } else if (activeTab === 'about_admin') {
+        const res = await getPlatform('/church-info/about').catch(()=>({data:{}}));
+        setAboutForm({ value: res.data?.info_value || '', value_tamil: res.data?.info_value_tamil || '' });
+        
+        const res2 = await getPlatform('/church-info/priest').catch(()=>({data:{}}));
+        setPriestForm({ value: res2.data?.info_value || '', value_tamil: res2.data?.info_value_tamil || '' });
       }
     } catch (e) {
       console.log('Error loading admin dashboard datasets', e);
@@ -434,6 +722,34 @@ export default function AdminDashboardScreen() {
   useEffect(() => {
     loadData();
   }, [activeTab]);
+
+  const [resettingDB, setResettingDB] = useState(false);
+
+  async function handleResetDatabase() {
+    Alert.alert(
+      '⚠️ RESET DATABASE',
+      'This will WIPE ALL CONTENT (events, prayers, posts, members, etc.) but keep your Admin account. This action CANNOT BE UNDONE.\n\nAre you absolutely sure?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'YES, WIPE EVERYTHING', 
+          style: 'destructive', 
+          onPress: async () => {
+            setResettingDB(true);
+            try {
+              await apiClient.post('/admin/reset');
+              Alert.alert('Success', 'Database has been reset.');
+              loadData();
+            } catch (e) {
+              Alert.alert('Error', e.message);
+            } finally {
+              setResettingDB(false);
+            }
+          }
+        }
+      ]
+    );
+  }
 
   async function handleRemoveMember(id) {
     Alert.alert(
@@ -646,9 +962,9 @@ export default function AdminDashboardScreen() {
                     <Text style={styles.cardLabel}>Total Events</Text>
                   </View>
                   <View style={styles.card}>
-                    <Text style={styles.cardIcon}>🎓</Text>
-                    <Text style={styles.cardVal}>{stats.courses || 0}</Text>
-                    <Text style={styles.cardLabel}>Discipleship Courses</Text>
+                    <Text style={styles.cardIcon}>👥</Text>
+                    <Text style={styles.cardVal}>{stats.ministries || 0}</Text>
+                    <Text style={styles.cardLabel}>Ministry Groups</Text>
                   </View>
                 </View>
               ) : !loading && <Text style={styles.empty}>Failed to load statistics.</Text>}
@@ -1297,23 +1613,70 @@ export default function AdminDashboardScreen() {
           {activeTab === 'verses' && (
             <View>
               <Text style={styles.sectionTitle}>BIBLE VERSES MANAGER</Text>
-              <Text style={{color: Colors.textDim, marginBottom: 15, fontSize: 13}}>These verses will randomly appear in the daily Dove animation.</Text>
+              <Text style={{color: Colors.textDim, marginBottom: 15, fontSize: 13}}>These verses will appear in the Daily Verse section.</Text>
               
               <View style={styles.formCard}>
                 <TextInput style={styles.input} placeholder="Bible Verse Text" placeholderTextColor={Colors.textMuted} value={verseForm.verse} onChangeText={t => setVerseForm({...verseForm, verse: t})} multiline />
                 <TextInput style={styles.input} placeholder="Reference (e.g. John 3:16)" placeholderTextColor={Colors.textMuted} value={verseForm.reference} onChangeText={t => setVerseForm({...verseForm, reference: t})} />
                 <TouchableOpacity style={styles.btn} onPress={handleCreateVerse}>
-                  <Text style={styles.btnText}>Add Verse</Text>
+                  <Text style={styles.btnText}>Add Daily Verse</Text>
                 </TouchableOpacity>
               </View>
 
-              <Text style={styles.sectionTitle}>ALL VERSES ({verses.length})</Text>
+              <Text style={styles.sectionTitle}>ALL DAILY VERSES ({verses.length})</Text>
               {verses.map(v => (
                 <View key={v.id} style={styles.groupCard}>
                   <Text style={{color: Colors.text, fontStyle: 'italic', marginBottom: 5}}>"{v.verse}"</Text>
                   <Text style={{color: Colors.gold, fontWeight: 'bold'}}>- {v.reference}</Text>
                   
                   <TouchableOpacity style={[styles.approveBtn, {backgroundColor: Colors.error, marginTop: 10, alignSelf: 'flex-start'}]} onPress={() => handleDeleteVerse(v.id)}>
+                    <Text style={styles.approveBtnText}>Delete</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* MEMORIZATION TAB */}
+          {activeTab === 'memorization_admin' && (
+            <View>
+              <Text style={styles.sectionTitle}>SCRIPTURE MEMORIZATION MANAGER</Text>
+              <Text style={{color: Colors.textDim, marginBottom: 15, fontSize: 13}}>These verses will appear in the Scripture Memorization feature for all members to learn.</Text>
+              
+              <View style={styles.formCard}>
+                <TextInput style={styles.input} placeholder="Bible Verse Text" placeholderTextColor={Colors.textMuted} value={verseForm.verse} onChangeText={t => setVerseForm({...verseForm, verse: t})} multiline />
+                <TextInput style={styles.input} placeholder="Reference (e.g. John 3:16)" placeholderTextColor={Colors.textMuted} value={verseForm.reference} onChangeText={t => setVerseForm({...verseForm, reference: t})} />
+                <TouchableOpacity style={styles.btn} onPress={async () => {
+                  if (!verseForm.verse || !verseForm.reference) return Alert.alert('Required', 'Please fill both fields.');
+                  try {
+                    await postPlatform('/global-memorizations', { verse: verseForm.verse, reference: verseForm.reference });
+                    setVerseForm({ verse: '', reference: '' });
+                    const res = await getPlatform('/global-memorizations');
+                    setMemorizations(Array.isArray(res.data) ? res.data : []);
+                  } catch(e) { Alert.alert('Error', e.message); }
+                }}>
+                  <Text style={styles.btnText}>Add Memorization</Text>
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.sectionTitle}>ALL GLOBAL MEMORIZATIONS ({memorizations.length})</Text>
+              {memorizations.map(v => (
+                <View key={v.id} style={styles.groupCard}>
+                  <Text style={{color: Colors.text, fontStyle: 'italic', marginBottom: 5}}>"{v.verse}"</Text>
+                  <Text style={{color: Colors.gold, fontWeight: 'bold'}}>- {v.reference}</Text>
+                  
+                  <TouchableOpacity style={[styles.approveBtn, {backgroundColor: Colors.error, marginTop: 10, alignSelf: 'flex-start'}]} onPress={() => {
+                    Alert.alert('Delete', 'Delete this global memorization?', [
+                      {text: 'Cancel', style: 'cancel'},
+                      {text: 'Delete', style: 'destructive', onPress: async () => {
+                        try {
+                          await apiClient.delete(`/platform/global-memorizations/${v.id}`);
+                          const res = await getPlatform('/global-memorizations');
+                          setMemorizations(Array.isArray(res.data) ? res.data : []);
+                        } catch(e) { Alert.alert('Error', e.message); }
+                      }}
+                    ]);
+                  }}>
                     <Text style={styles.approveBtnText}>Delete</Text>
                   </TouchableOpacity>
                 </View>
@@ -1681,13 +2044,22 @@ export default function AdminDashboardScreen() {
                   <Text style={{flex: 1, color: Colors.textMuted, textAlign: 'center'}}>Hours</Text>
                 </View>
                 {familyReport.length === 0 && <Text style={{padding: 15, color: Colors.textDim, textAlign: 'center'}}>No prayer data yet.</Text>}
-                {familyReport.map((f, i) => (
-                  <View key={f.family_id} style={{flexDirection: 'row', padding: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.02)'}}>
-                    <Text style={{flex: 2, color: Colors.text, fontWeight: 'bold'}}>{i === 0 ? '🥇 ' : i === 1 ? '🥈 ' : i === 2 ? '🥉 ' : ''}{f.family_name}</Text>
-                    <Text style={{flex: 1, color: Colors.gold, textAlign: 'center', fontWeight: 'bold'}}>{f.candles_completed} 🔥</Text>
-                    <Text style={{flex: 1, color: Colors.textMuted, textAlign: 'center'}}>{Number(f.prayer_hours || 0).toFixed(1)}h</Text>
-                  </View>
-                ))}
+                 {familyReport && familyReport.map((f, i) => {
+                  if (!f) return null;
+                  return (
+                    <View key={f.family_id || `fam-${i}`} style={{flexDirection: 'row', padding: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.02)'}}>
+                      <Text style={{flex: 2, color: Colors.text, fontWeight: 'bold'}}>
+                        {i === 0 ? '🥇 ' : i === 1 ? '🥈 ' : i === 2 ? '🥉 ' : ''}{f.family_name || 'Unnamed Family'}
+                      </Text>
+                      <Text style={{flex: 1, color: Colors.gold, textAlign: 'center', fontWeight: 'bold'}}>
+                        {f.candles_completed || 0} 🔥
+                      </Text>
+                      <Text style={{flex: 1, color: Colors.textMuted, textAlign: 'center'}}>
+                        {Number(f.prayer_hours || 0).toFixed(1)}h
+                      </Text>
+                    </View>
+                  );
+                })}
               </View>
 
               <Text style={styles.sectionTitle}>ALL FAMILY GROUPS ({familyGroups.length})</Text>
@@ -2060,40 +2432,400 @@ export default function AdminDashboardScreen() {
             </View>
           )}
 
-          {/* SETTINGS TAB */}
+          {/* VOLUNTEER MANAGER TAB */}
+          {activeTab === 'volunteer_admin' && (
+            <View>
+              <View style={styles.formCard}>
+                <Text style={styles.formTitle}>Create Volunteer Opportunity</Text>
+                <TextInput style={styles.input} placeholder="Task Title" placeholderTextColor={Colors.textMuted} value={volunteerForm.title} onChangeText={v => setVolunteerForm({...volunteerForm, title: v})} />
+                <TextInput style={[styles.input, {height: 60}]} multiline placeholder="Description" placeholderTextColor={Colors.textMuted} value={volunteerForm.description} onChangeText={v => setVolunteerForm({...volunteerForm, description: v})} />
+                <TextInput style={styles.input} placeholder="Open Slots (e.g. 10)" keyboardType="number-pad" placeholderTextColor={Colors.textMuted} value={volunteerForm.slots} onChangeText={v => setVolunteerForm({...volunteerForm, slots: v})} />
+                <TouchableOpacity style={styles.btn} onPress={handleCreateVolunteer}>
+                  <Text style={styles.btnText}>CREATE TASK</Text>
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.sectionTitle}>VOLUNTEER OPPORTUNITIES ({adminVolunteers.length})</Text>
+              {adminVolunteers.map(vol => (
+                <View key={vol.id} style={styles.groupCard}>
+                  <Text style={styles.groupName}>🤝 {vol.title}</Text>
+                  {vol.description ? <Text style={{color: Colors.textMuted, fontSize: 13, marginVertical: 4}}>{vol.description}</Text> : null}
+                  <Text style={{color: Colors.gold, fontSize: 12, fontWeight: 'bold'}}>Slots Remaining: {vol.slots - vol.signed_up} / {vol.slots}</Text>
+                  
+                  <View style={{flexDirection: 'row', gap: 10, marginTop: 10}}>
+                    <TouchableOpacity style={[styles.approveBtn, {backgroundColor: Colors.primary}]} onPress={() => handleViewSignups(vol.id)}>
+                      <Text style={styles.approveBtnText}>{selectedVolId === vol.id ? 'Hide Signups' : 'View Signups'}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.approveBtn, {backgroundColor: Colors.error}]} onPress={() => handleDeleteAdminItem('volunteers', vol.id)}>
+                      <Text style={styles.approveBtnText}>Delete</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Expanded Signups List */}
+                  {selectedVolId === vol.id && (
+                    <View style={{marginTop: 15, padding: 10, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: Radius.sm}}>
+                      <Text style={{color: Colors.gold, fontWeight: 'bold', fontSize: 12, marginBottom: 8}}>Signed Up Members ({volSignups.length}):</Text>
+                      {volSignups.length === 0 ? (
+                        <Text style={{color: Colors.textDim, fontSize: 12, fontStyle: 'italic'}}>No members signed up yet.</Text>
+                      ) : (
+                        volSignups.map(su => (
+                          <View key={su.id} style={{marginBottom: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)', paddingBottom: 8}}>
+                            <Text style={{color: Colors.text, fontWeight: 'bold', fontSize: 13}}>👤 {su.member_name} ({su.member_email || 'No Email'})</Text>
+                            <Text style={{color: Colors.textDim, fontSize: 11, marginVertical: 3}}>Signed on: {su.signed_at ? new Date(su.signed_at).toLocaleDateString() : 'N/A'}</Text>
+                            
+                            <TextInput 
+                              style={[styles.input, {height: 40, marginTop: 5, fontSize: 12, marginBottom: 5}]} 
+                              placeholder="Tell them what to do..." 
+                              placeholderTextColor="#666"
+                              value={volNotes[su.id] !== undefined ? volNotes[su.id] : (su.instructions || '')}
+                              onChangeText={v => setVolNotes(prev => ({...prev, [su.id]: v}))}
+                            />
+                            <TouchableOpacity style={[styles.btn, {paddingVertical: 6, backgroundColor: Colors.gold, alignSelf: 'flex-start', paddingHorizontal: 12}]} onPress={() => handleSaveInstructions(su.id, volNotes[su.id] !== undefined ? volNotes[su.id] : (su.instructions || ''))}>
+                              <Text style={[styles.btnText, {fontSize: 12, color: Colors.dark}]}>Assign Instructions</Text>
+                            </TouchableOpacity>
+                          </View>
+                        ))
+                      )}
+                    </View>
+                  )}
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* AI LOGS TAB */}
+          {activeTab === 'ai_logs_admin' && (
+            <View>
+              <Text style={styles.sectionTitle}>AI COUNSELOR CONVERSATION LOGS</Text>
+              {aiChatLogs.map(log => (
+                <View key={log.id} style={styles.groupCard}>
+                  <Text style={{color: Colors.gold, fontWeight: 'bold', fontSize: 13}}>👤 User: {log.member_name || 'Anonymous'}</Text>
+                  <Text style={{color: Colors.textMuted, fontSize: 11, marginBottom: 6}}>Date: {new Date(log.created_at).toLocaleString()}</Text>
+                  <Text style={{color: Colors.white, fontSize: 14, fontWeight: '700'}}>Q: {log.question}</Text>
+                  <Text style={{color: Colors.textMuted, fontSize: 13, marginTop: 4, lineHeight: 18}}>A: {log.answer}</Text>
+                </View>
+              ))}
+              {aiChatLogs.length === 0 && <Text style={styles.empty}>No conversations logged yet.</Text>}
+            </View>
+          )}
+
+          {/* BULLETINS TAB */}
+          {activeTab === 'bulletins_admin' && (
+            <View>
+              <View style={styles.formCard}>
+                <Text style={styles.formTitle}>Post Weekly Bulletin</Text>
+                <TextInput style={styles.input} placeholder="Bulletin Title (e.g. 25th Sunday in Ordinary Time)" placeholderTextColor={Colors.textMuted} value={bulletinForm.title} onChangeText={v => setBulletinForm({...bulletinForm, title: v})} />
+                <TextInput style={[styles.input, {height: 80}]} multiline placeholder="Bulletin Text Content & Readings..." placeholderTextColor={Colors.textMuted} value={bulletinForm.content} onChangeText={v => setBulletinForm({...bulletinForm, content: v})} />
+                <TextInput style={styles.input} placeholder="Date (YYYY-MM-DD, e.g., 2026-06-18)" placeholderTextColor={Colors.textMuted} value={bulletinForm.week_date} onChangeText={v => setBulletinForm({...bulletinForm, week_date: v})} />
+                <TouchableOpacity style={styles.btn} onPress={handleCreateBulletin}>
+                  <Text style={styles.btnText}>PUBLISH BULLETIN</Text>
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.sectionTitle}>PUBLISHED BULLETINS ({adminBulletins.length})</Text>
+              {adminBulletins.map(bul => (
+                <View key={bul.id} style={styles.groupCard}>
+                  <Text style={styles.groupName}>📢 {bul.title}</Text>
+                  <Text style={{color: Colors.gold, fontSize: 12, marginVertical: 4}}>Week: {bul.week_date} • By: {bul.added_by}</Text>
+                  <Text style={{color: Colors.textMuted, fontSize: 13, lineHeight: 18}} numberOfLines={3}>{bul.content}</Text>
+                  <TouchableOpacity style={[styles.approveBtn, {backgroundColor: Colors.error, marginTop: 10, alignSelf: 'flex-start'}]} onPress={() => handleDeleteAdminItem('bulletins', bul.id)}>
+                    <Text style={styles.approveBtnText}>Delete Bulletin</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* MINISTRIES TAB */}
+          {activeTab === 'ministries_admin' && (
+            <View>
+              <View style={styles.formCard}>
+                <Text style={styles.formTitle}>Create Ministry Group</Text>
+                <TextInput style={styles.input} placeholder="Ministry Name (e.g. Choir Group)" placeholderTextColor={Colors.textMuted} value={ministryForm.name} onChangeText={v => setMinistryForm({...ministryForm, name: v})} />
+                <TextInput style={styles.input} placeholder="Leader Name" placeholderTextColor={Colors.textMuted} value={ministryForm.leader_name} onChangeText={v => setMinistryForm({...ministryForm, leader_name: v})} />
+                <TextInput style={[styles.input, {height: 60}]} multiline placeholder="Description" placeholderTextColor={Colors.textMuted} value={ministryForm.description} onChangeText={v => setMinistryForm({...ministryForm, description: v})} />
+                <TouchableOpacity style={styles.btn} onPress={handleCreateMinistry}>
+                  <Text style={styles.btnText}>CREATE MINISTRY</Text>
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.sectionTitle}>CHURCH MINISTRIES ({adminMinistries.length})</Text>
+              {adminMinistries.map(min => (
+                <View key={min.id} style={styles.groupCard}>
+                  <Text style={styles.groupName}>👥 {min.name}</Text>
+                  <Text style={{color: Colors.gold, fontSize: 12, marginVertical: 4}}>Leader: {min.leader_name} • Members: {min.member_count}</Text>
+                  {min.description ? <Text style={{color: Colors.textMuted, fontSize: 13}}>{min.description}</Text> : null}
+                  <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
+                    <TouchableOpacity style={[styles.approveBtn, {backgroundColor: Colors.gold, flex: 1}]} onPress={() => handleOpenMinistryChat(min)}>
+                      <Text style={[styles.approveBtnText, {color: Colors.dark}]}>View Group Chat</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.approveBtn, {backgroundColor: Colors.error, flex: 1}]} onPress={() => handleDeleteAdminItem('ministry-groups', min.id)}>
+                      <Text style={styles.approveBtnText}>Delete Ministry</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* RESOURCES TAB */}
+          {activeTab === 'resources_admin' && (
+            <View>
+              <View style={styles.formCard}>
+                <Text style={styles.formTitle}>Post Educational Article</Text>
+                <TextInput style={styles.input} placeholder="Article Title" placeholderTextColor={Colors.textMuted} value={resourceForm.title} onChangeText={v => setResourceForm({...resourceForm, title: v})} />
+                <TextInput style={[styles.input, {height: 100}]} multiline placeholder="Article Content & Guides..." placeholderTextColor={Colors.textMuted} value={resourceForm.content} onChangeText={v => setResourceForm({...resourceForm, content: v})} />
+                
+                <Text style={[styles.codeLabel, { marginBottom: 6 }]}>Category</Text>
+                <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+                  {['Parenting', 'Youth'].map(cat => (
+                    <TouchableOpacity 
+                      key={cat} 
+                      style={[
+                        styles.subTabButton, 
+                        resourceForm.category === cat && { backgroundColor: Colors.gold, borderColor: Colors.gold }
+                      ]}
+                      onPress={() => setResourceForm({...resourceForm, category: cat})}
+                    >
+                      <Text style={[
+                        styles.subTabText, 
+                        resourceForm.category === cat && { color: Colors.dark, fontWeight: '700' }
+                      ]}>{cat}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <TouchableOpacity style={styles.btn} onPress={handleCreateResource}>
+                  <Text style={styles.btnText}>PUBLISH ARTICLE</Text>
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.sectionTitle}>PARENTING RESOURCES ({parentingArticles.length})</Text>
+              {parentingArticles.map(art => (
+                <View key={art.id} style={styles.groupCard}>
+                  <Text style={styles.groupName}>📚 {art.title}</Text>
+                  <Text style={{color: Colors.textMuted, fontSize: 13, marginVertical: 6, lineHeight: 18}} numberOfLines={3}>{art.content}</Text>
+                  <TouchableOpacity style={[styles.approveBtn, {backgroundColor: Colors.error, alignSelf: 'flex-start'}]} onPress={() => handleDeleteAdminItem('parenting', art.id)}>
+                    <Text style={styles.approveBtnText}>Delete</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+
+              <Text style={styles.sectionTitle}>YOUTH CORNER ARTICLES ({youthArticles.length})</Text>
+              {youthArticles.map(art => (
+                <View key={art.id} style={styles.groupCard}>
+                  <Text style={styles.groupName}>🔥 {art.title}</Text>
+                  <Text style={{color: Colors.textMuted, fontSize: 13, marginVertical: 6, lineHeight: 18}} numberOfLines={3}>{art.content}</Text>
+                  <TouchableOpacity style={[styles.approveBtn, {backgroundColor: Colors.error, alignSelf: 'flex-start'}]} onPress={() => handleDeleteAdminItem('youth-corner', art.id)}>
+                    <Text style={styles.approveBtnText}>Delete</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* SONG REQUESTS TAB */}
+          {activeTab === 'song_requests_admin' && (
+            <View>
+              <Text style={styles.sectionTitle}>SONG REQUESTS FROM PARISHIONERS</Text>
+              {adminSongRequests.map(req => (
+                <View key={req.id} style={styles.groupCard}>
+                  <Text style={styles.groupName}>🎵 {req.song_title}</Text>
+                  <Text style={{color: Colors.gold, fontSize: 12, marginVertical: 2}}>Requester: {req.member_name} • Occasion: {req.occasion || 'General'}</Text>
+                  
+                  <View style={{flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4}}>
+                    <Text style={{fontSize: 11, color: Colors.textDim}}>Status:</Text>
+                    <View style={[styles.badge, req.status === 'approved' ? {backgroundColor: 'rgba(46,204,113,0.15)', borderColor: Colors.success} : req.status === 'rejected' ? {backgroundColor: 'rgba(231,76,60,0.15)', borderColor: Colors.error} : {backgroundColor: 'rgba(243,156,18,0.15)', borderColor: Colors.warning}]}>
+                      <Text style={[styles.badgeText, req.status === 'approved' ? {color: Colors.success} : req.status === 'rejected' ? {color: Colors.error} : {color: Colors.warning}]}>{req.status.toUpperCase()}</Text>
+                    </View>
+                  </View>
+
+                  <View style={{flexDirection: 'row', gap: 10, marginTop: 12}}>
+                    <TouchableOpacity style={[styles.approveBtn, {backgroundColor: Colors.success}]} onPress={() => handleModerateSongRequest(req.id, 'approved')}>
+                      <Text style={styles.approveBtnText}>Approve</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.approveBtn, {backgroundColor: Colors.warning}]} onPress={() => handleModerateSongRequest(req.id, 'rejected')}>
+                      <Text style={styles.approveBtnText}>Reject</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.approveBtn, {backgroundColor: Colors.error}]} onPress={() => handleDeleteAdminItem('song-requests', req.id)}>
+                      <Text style={styles.approveBtnText}>Delete</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+              {adminSongRequests.length === 0 && <Text style={styles.empty}>No song requests found.</Text>}
+            </View>
+          )}
+
+          {/* PRAYER CALENDAR TAB */}
+          {activeTab === 'prayer_calendar_admin' && (
+            <View>
+              {(() => {
+                const markedDates = {};
+                adminPrayerCalendar.forEach(cal => {
+                  if (cal.event_date) {
+                    markedDates[cal.event_date] = { marked: true, dotColor: Colors.gold };
+                  }
+                });
+                if (prayerCalendarForm.event_date) {
+                  markedDates[prayerCalendarForm.event_date] = { ...markedDates[prayerCalendarForm.event_date], selected: true, selectedColor: Colors.gold };
+                }
+                const todayString = new Date().toISOString().split('T')[0];
+
+                return (
+                  <View style={styles.formCard}>
+                    <Text style={styles.formTitle}>Select Date & Add Prayer</Text>
+                    
+                    <Calendar
+                      current={prayerCalendarForm.event_date || todayString}
+                      onDayPress={day => setPrayerCalendarForm({...prayerCalendarForm, event_date: day.dateString})}
+                      markedDates={markedDates}
+                      theme={{
+                        calendarBackground: Colors.darkCard,
+                        textSectionTitleColor: Colors.textMuted,
+                        selectedDayBackgroundColor: Colors.gold,
+                        selectedDayTextColor: Colors.dark,
+                        todayTextColor: Colors.gold,
+                        dayTextColor: Colors.text,
+                        textDisabledColor: '#444',
+                        dotColor: Colors.gold,
+                        selectedDotColor: Colors.dark,
+                        arrowColor: Colors.gold,
+                        monthTextColor: Colors.gold,
+                        textDayFontWeight: 'bold',
+                        textMonthFontWeight: 'bold',
+                        textDayHeaderFontWeight: '500',
+                        textDayFontSize: 16,
+                        textMonthFontSize: 18,
+                      }}
+                      style={{ borderRadius: Radius.medium, marginBottom: 15 }}
+                    />
+                    
+                    <Text style={{color: Colors.text, marginBottom: 8}}>Selected Date: <Text style={{color: Colors.gold, fontWeight: 'bold'}}>{prayerCalendarForm.event_date || 'None (Tap a date above)'}</Text></Text>
+
+                    <TextInput style={styles.input} placeholder="Event Title (e.g. Daily Rosary)" placeholderTextColor={Colors.textMuted} value={prayerCalendarForm.title} onChangeText={v => setPrayerCalendarForm({...prayerCalendarForm, title: v})} />
+                    <TextInput style={styles.input} placeholder="Description" placeholderTextColor={Colors.textMuted} value={prayerCalendarForm.description} onChangeText={v => setPrayerCalendarForm({...prayerCalendarForm, description: v})} />
+                    <TextInput style={styles.input} placeholder="Event Type (e.g. Adoration, Vigil)" placeholderTextColor={Colors.textMuted} value={prayerCalendarForm.event_type} onChangeText={v => setPrayerCalendarForm({...prayerCalendarForm, event_type: v})} />
+                    <TouchableOpacity style={styles.btn} onPress={handleCreatePrayerCalendar}>
+                      <Text style={styles.btnText}>ADD PRAYER FOR SELECTED DATE</Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              })()}
+
+              <Text style={styles.sectionTitle}>PRAYER CALENDAR DATES ({adminPrayerCalendar.length})</Text>
+              {adminPrayerCalendar.map(cal => (
+                <View key={cal.id} style={styles.groupCard}>
+                  <Text style={styles.groupName}>🗓️ {cal.title}</Text>
+                  <Text style={{color: Colors.gold, fontSize: 12, marginVertical: 4}}>Date: {cal.event_date} • Type: {cal.event_type}</Text>
+                  {cal.description ? <Text style={{color: Colors.textMuted, fontSize: 13}}>{cal.description}</Text> : null}
+                  <TouchableOpacity style={[styles.approveBtn, {backgroundColor: Colors.error, marginTop: 10, alignSelf: 'flex-start'}]} onPress={() => handleDeleteAdminItem('prayer-calendar', cal.id)}>
+                    <Text style={styles.approveBtnText}>Delete Event</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* ABOUT MANAGER TAB */}
           {activeTab === 'settings' && (
             <View>
               <Text style={styles.sectionTitle}>SYSTEM SETTINGS</Text>
-              <View style={[styles.groupCard, { borderColor: Colors.error }]}>
-                <Text style={[styles.groupName, { color: Colors.error, marginBottom: 10 }]}>⚠️ Reset Entire Database</Text>
-                <Text style={{ color: Colors.textMuted, fontSize: 13, marginBottom: 20, lineHeight: 20 }}>
-                  This will PERMANENTLY DELETE all members, family groups, youth groups, media, prayers, and events. 
-                  Only the Admin login credentials will be preserved. This action CANNOT be undone.
+              
+              <View style={styles.formCard}>
+                <Text style={styles.formTitle}>Danger Zone</Text>
+                <Text style={{color: Colors.textMuted, fontSize: 13, marginBottom: 15}}>
+                  Resetting the database will delete all user-generated content, members, events, and media. Your Admin account will be preserved.
                 </Text>
-                <TouchableOpacity style={[styles.btn, { backgroundColor: Colors.error }]} onPress={() => {
-                  Alert.alert(
-                    "Are you absolutely sure?", 
-                    "This will delete ALL data in the app. There is no going back.",
-                    [
-                      { text: "Cancel", style: "cancel" },
-                      { 
-                        text: "Yes, Delete Everything", 
-                        style: "destructive",
-                        onPress: async () => {
-                          try {
-                            await apiClient.post('/platform/reset-database');
-                            Alert.alert('Success', 'Database has been reset.');
-                            loadData();
-                          } catch (e) {
-                            Alert.alert('Error', e.message);
-                          }
-                        }
-                      }
-                    ]
-                  );
-                }}>
-                  <Text style={styles.btnText}>RESET DATABASE</Text>
+                
+                <TouchableOpacity 
+                  style={[styles.btn, { backgroundColor: 'rgba(231,76,60,0.1)', borderColor: Colors.error, borderWidth: 1 }]} 
+                  onPress={handleResetDatabase}
+                  disabled={resettingDB}
+                >
+                  {resettingDB ? (
+                    <ActivityIndicator color={Colors.error} />
+                  ) : (
+                    <Text style={[styles.btnText, { color: Colors.error }]}>🗑️ FACTORY RESET DATABASE</Text>
+                  )}
                 </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          {activeTab === 'about_admin' && (
+            <View>
+              <View style={styles.formCard}>
+                <Text style={styles.formTitle}>Manage "About St Antony Church" Description</Text>
+                
+                <Text style={[styles.codeLabel, { marginBottom: 6 }]}>English Description</Text>
+                <TextInput 
+                  style={[styles.input, { height: 120, textAlignVertical: 'top' }]} 
+                  multiline
+                  placeholder="Enter church history/about in English..."
+                  value={aboutForm.value}
+                  onChangeText={v => setAboutForm(prev => ({...prev, value: v}))}
+                />
+
+                <Text style={[styles.codeLabel, { marginBottom: 6, marginTop: 10 }]}>Tamil Description</Text>
+                <TextInput 
+                  style={[styles.input, { height: 120, textAlignVertical: 'top' }]} 
+                  multiline
+                  placeholder="Enter church history/about in Tamil..."
+                  value={aboutForm.value_tamil}
+                  onChangeText={v => setAboutForm(prev => ({...prev, value_tamil: v}))}
+                />
+
+                <TouchableOpacity style={[styles.btn, updatingAbout && { opacity: 0.7 }]} onPress={handleUpdateAbout} disabled={updatingAbout}>
+                  <Text style={styles.btnText}>{updatingAbout ? 'SAVING...' : 'SAVE ABOUT INFO'}</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.formCard}>
+                <Text style={styles.formTitle}>Manage Parish Priest Information</Text>
+                
+                <Text style={[styles.codeLabel, { marginBottom: 6 }]}>English Info</Text>
+                <TextInput 
+                  style={[styles.input, { height: 120, textAlignVertical: 'top' }]} 
+                  multiline
+                  placeholder="Enter Priest details (Name, Address, About) in English..."
+                  value={priestForm.value}
+                  onChangeText={v => setPriestForm(prev => ({...prev, value: v}))}
+                />
+
+                <Text style={[styles.codeLabel, { marginBottom: 6, marginTop: 10 }]}>Tamil Info</Text>
+                <TextInput 
+                  style={[styles.input, { height: 120, textAlignVertical: 'top' }]} 
+                  multiline
+                  placeholder="Enter Priest details in Tamil..."
+                  value={priestForm.value_tamil}
+                  onChangeText={v => setPriestForm(prev => ({...prev, value_tamil: v}))}
+                />
+
+                <TouchableOpacity style={[styles.btn, updatingAbout && { opacity: 0.7 }]} onPress={handleUpdatePriest} disabled={updatingAbout}>
+                  <Text style={styles.btnText}>{updatingAbout ? 'SAVING...' : 'SAVE PRIEST INFO'}</Text>
+                </TouchableOpacity>
+
+                <View style={{ marginTop: 20, paddingTop: 20, borderTopWidth: 1, borderColor: Colors.glassBorder }}>
+                  <Text style={[styles.codeLabel, { marginBottom: 6 }]}>Upload New Priest Image</Text>
+                  {priestImage ? (
+                    <Image source={{ uri: priestImage.uri }} style={{ width: 100, height: 100, borderRadius: 50, alignSelf: 'center', marginVertical: 10 }} />
+                  ) : (
+                    <Image source={{ uri: `${SERVER_URL}/assets/priest_image.jpeg?t=${Date.now()}` }} style={{ width: 100, height: 100, borderRadius: 50, alignSelf: 'center', marginVertical: 10 }} />
+                  )}
+                  <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
+                    <TouchableOpacity style={[styles.btn, { flex: 1, backgroundColor: 'rgba(255,255,255,0.1)' }]} onPress={handlePickPriestImage}>
+                      <Text style={styles.btnText}>Choose Image</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={[styles.btn, { flex: 1 }, (!priestImage || uploadingPriestImage) && { opacity: 0.5 }]} 
+                      onPress={handleUploadPriestImage}
+                      disabled={!priestImage || uploadingPriestImage}
+                    >
+                      <Text style={styles.btnText}>{uploadingPriestImage ? 'UPLOADING...' : 'UPLOAD'}</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
               </View>
             </View>
           )}
@@ -2107,31 +2839,45 @@ export default function AdminDashboardScreen() {
         <Text style={styles.appTitle}>St Antony Church</Text>
         <ScrollView contentContainerStyle={styles.menuList}>
           {[
-            { label: 'Overview', icon: '📈', tab: 'overview' },
-            { label: 'Members', icon: '👥', tab: 'members' },
-            { label: 'Youth Groups', icon: '🔥', tab: 'groups' },
-            { label: 'Approvals', icon: '⏳', tab: 'approvals' },
-            { label: 'Videos', icon: '🎬', tab: 'videos' },
-            { label: 'Audio', icon: '🎵', tab: 'audio' },
-            { label: 'Events', icon: '📅', tab: 'events' },
-            { label: 'Galleries', icon: '🖼️', tab: 'galleries' },
-            { label: 'Schedules', icon: '⏰', tab: 'schedules' },
-            { label: 'Devotionals', icon: '📖', tab: 'devotionals' },
-            { label: 'Worship', icon: '🎤', tab: 'worship' },
-            { label: 'Quizzes', icon: '❓', tab: 'quizzes' },
-            { label: 'Podcasts', icon: '🎧', tab: 'podcasts' },
-            { label: 'Reading Plans', icon: '📚', tab: 'reading_plans' },
-            { label: 'Announcements', icon: '📢', tab: 'announcements' },
-            { label: 'Prayers', icon: '🙏', tab: 'prayers' },
-            { label: 'Verses', icon: '📖', tab: 'verses' },
-            { label: 'Family Groups', icon: '👨‍👩‍👧‍👦', tab: 'family_groups' },
-            { label: 'Testimonies', icon: '💬', tab: 'testimonies' },
-            { label: 'Prayer Groups', icon: '⭕', tab: 'prayer_groups' },
-            { label: 'Playlists & Choir', icon: '🎼', tab: 'playlists_choir' },
-            { label: 'Daily Challenges', icon: '🏆', tab: 'challenges' },
-            { label: 'Children Stories', icon: '👼', tab: 'children_stories' },
-            { label: 'Activity', icon: '💬', tab: 'activity' },
-            { label: 'Settings', icon: '⚙️', tab: 'settings' },
+            // General Content (Matches Member Tabs & Features)
+            { label: t('verses'), icon: '📖', tab: 'verses' },
+            { label: t('devotionals'), icon: '📖', tab: 'devotionals' },
+            { label: t('prayers'), icon: '🙏', tab: 'prayers' },
+            { label: t('events'), icon: '📅', tab: 'events' },
+            { label: t('videos'), icon: '🎥', tab: 'videos' },
+            { label: t('audio'), icon: '🎵', tab: 'audio' },
+            { label: t('worship'), icon: '🎤', tab: 'worship' },
+            { label: t('quiz'), icon: '❓', tab: 'quizzes' },
+            { label: t('family_group'), icon: '👨‍👩‍👧‍👦', tab: 'family_groups' },
+            { label: t('youth_group'), icon: '🔥', tab: 'groups' },
+            { label: t('galleries'), icon: '🖼️', tab: 'galleries' },
+
+            // More Features (Matches Member 'More' Menu)
+            { label: t('reading_plans'), icon: '📚', tab: 'reading_plans' },
+            { label: t('services'), icon: '⏰', tab: 'schedules' },
+            { label: t('podcasts'), icon: '🎧', tab: 'podcasts' },
+            { label: t('stories'), icon: '👼', tab: 'children_stories' },
+            { label: t('testimonies'), icon: '💬', tab: 'testimonies' },
+            { label: t('prayer_groups'), icon: '⭕', tab: 'prayer_groups' },
+            { label: t('playlists_choir'), icon: '🎼', tab: 'playlists_choir' },
+            { label: t('challenges'), icon: '🏆', tab: 'challenges' },
+            { label: t('memorization'), icon: '📖', tab: 'memorization_admin' },
+            { label: t('bulletins_manager'), icon: '📢', tab: 'bulletins_admin' },
+            { label: t('ministries_manager'), icon: '👥', tab: 'ministries_admin' },
+            { label: t('volunteer_manager'), icon: '🤝', tab: 'volunteer_admin' },
+            { label: t('resources_manager'), icon: '📚', tab: 'resources_admin' },
+            { label: t('prayer_calendar'), icon: '🗓️', tab: 'prayer_calendar_admin' },
+            { label: t('song_requests'), icon: '🎵', tab: 'song_requests_admin' },
+
+            // Admin Extra Options
+            { label: t('overview'), icon: '📈', tab: 'overview' },
+            { label: t('approvals'), icon: '⏳', tab: 'approvals' },
+            { label: t('announcements'), icon: '📢', tab: 'announcements' },
+            { label: t('members'), icon: '👥', tab: 'members' },
+            { label: t('activity'), icon: '💬', tab: 'activity' },
+            { label: t('ai_chat_logs'), icon: '🤖', tab: 'ai_logs_admin' },
+            { label: lang === 'ta' ? 'திருச்சபை பற்றி' : 'About Church', icon: '⛪', tab: 'about_admin' },
+            { label: t('settings'), icon: '⚙️', tab: 'settings' }
           ].map(item => (
             <TouchableOpacity 
               key={item.label} 
@@ -2142,7 +2888,7 @@ export default function AdminDashboardScreen() {
               <Text style={[styles.menuLabel, activeTab === item.tab && styles.activeMenuLabel]}>{item.label}</Text>
             </TouchableOpacity>
           ))}
-          <TouchableOpacity style={styles.menuItem} onPress={() => handleMenuSelect('logout')}><Text style={styles.menuIcon}>⏻</Text><Text style={[styles.menuLabel, {color: Colors.error}]}>Log Out</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.menuItem} onPress={() => handleMenuSelect('logout')}><Text style={styles.menuIcon}>⏻</Text><Text style={[styles.menuLabel, {color: Colors.error}]}>{t('logout')}</Text></TouchableOpacity>
         </ScrollView>
       </Animated.View>
 
@@ -2189,6 +2935,73 @@ export default function AdminDashboardScreen() {
           </View>
         </View>
       )}
+
+
+      {/* MINISTRY CHAT MODAL */}
+      <Modal
+        visible={ministryChatOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setMinistryChatOpen(false)}
+      >
+        <View style={{flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end'}}>
+          <View style={{height: '80%', backgroundColor: Colors.darkCard, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 15}}>
+            <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: Colors.glassBorder, paddingBottom: 10, marginBottom: 10}}>
+              <Text style={{color: Colors.gold, fontSize: 16, fontWeight: 'bold'}}>{activeMinistry?.name} Chat</Text>
+              <TouchableOpacity onPress={() => setMinistryChatOpen(false)} style={{padding: 5}}>
+                <Text style={{color: Colors.error, fontWeight: 'bold'}}>Close ✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={{flex: 1}} contentContainerStyle={{paddingBottom: 20}}>
+              {ministryMessages.length === 0 ? (
+                <Text style={{color: Colors.textMuted, textAlign: 'center', marginTop: 20}}>No messages in this group yet.</Text>
+              ) : (
+                ministryMessages.map((msg, idx) => {
+                  const isAdmin = msg.member_name === 'Administrator' || msg.member_id === 0;
+                  return (
+                    <View key={idx} style={{
+                      backgroundColor: isAdmin ? 'rgba(200, 153, 26, 0.15)' : 'rgba(255,255,255,0.05)',
+                      padding: 10,
+                      borderRadius: 10,
+                      marginBottom: 10,
+                      alignSelf: isAdmin ? 'flex-end' : 'flex-start',
+                      maxWidth: '85%',
+                      borderWidth: isAdmin ? 1 : 0,
+                      borderColor: Colors.gold
+                    }}>
+                      <Text style={{color: isAdmin ? Colors.gold : Colors.textMuted, fontSize: 11, fontWeight: 'bold', marginBottom: 2}}>
+                        {isAdmin ? '🛡️ Admin' : msg.member_name}
+                      </Text>
+                      <Text style={{color: Colors.text, fontSize: 14}}>{msg.message}</Text>
+                      <Text style={{color: Colors.textDim, fontSize: 10, marginTop: 4, textAlign: 'right'}}>
+                        {new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                      </Text>
+                    </View>
+                  );
+                })
+              )}
+            </ScrollView>
+
+            <View style={{flexDirection: 'row', alignItems: 'center', gap: 10, borderTopWidth: 1, borderTopColor: Colors.glassBorder, paddingTop: 10}}>
+              <TextInput 
+                style={[styles.input, {flex: 1, marginBottom: 0}]}
+                placeholder="Post as Admin..."
+                placeholderTextColor={Colors.textMuted}
+                value={ministryChatInput}
+                onChangeText={setMinistryChatInput}
+                onSubmitEditing={handleSendMinistryMessage}
+              />
+              <TouchableOpacity 
+                style={[styles.btn, {paddingHorizontal: 20, paddingVertical: 12, marginBottom: 0}]}
+                onPress={handleSendMinistryMessage}
+              >
+                <Text style={styles.btnText}>Send</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

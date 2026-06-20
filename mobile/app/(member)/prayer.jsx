@@ -1,4 +1,5 @@
 import { useEffect, useState, useContext } from 'react';
+import { useRouter } from 'expo-router';
 import { View, Text, TextInput, ScrollView, StyleSheet, SafeAreaView, TouchableOpacity, Switch, RefreshControl, Alert } from 'react-native';
 import apiClient from '../../src/services/api';
 import { Colors, Spacing, Radius } from '../../src/config/theme';
@@ -7,6 +8,7 @@ import { useLanguage } from '../../src/context/LanguageContext';
 
 export default function PrayerScreen() {
   const { toggleDrawer } = useContext(DrawerContext);
+  const router = useRouter();
   const { t } = useLanguage();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -44,14 +46,17 @@ export default function PrayerScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={[styles.header, { flexDirection: 'row', alignItems: 'center', gap: 10 }]}>
+      <View style={[styles.header, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
         <TouchableOpacity onPress={toggleDrawer} style={styles.menuBtn}>
-          <Text style={styles.menuBtnText}>☰</Text>
+          <Text style={{ fontSize: 24, color: Colors.gold, fontWeight: 'bold' }}>☰</Text>
         </TouchableOpacity>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, alignItems: 'center' }}><View style={{ flex: 1 }}>
           <Text style={styles.title}>{t('prayer_requests_title')}</Text>
-          <Text style={styles.subtitle}>{t('submit_and_pray')}</Text>
-        </View>
+          <Text style={styles.subtitle}>{t('submit_and_pray')}</Text></View>
+        <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }}>
+          <Text style={{ fontSize: 16, color: Colors.gold }}>🔙 {t('back') || 'Back'}</Text>
+        </TouchableOpacity>
+      </View>
       </View>
       
       <View style={{ flexDirection: 'row', padding: Spacing.md, paddingBottom: 0 }}>

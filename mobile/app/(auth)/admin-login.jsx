@@ -64,6 +64,12 @@ export default function AdminLoginScreen() {
               <Text style={styles.submitText}>Login as Admin</Text>}
           </TouchableOpacity>
 
+          {loading && (
+            <Text style={{ color: Colors.gold, fontSize: 12, textAlign: 'center', marginTop: 12, fontStyle: 'italic', paddingHorizontal: 10 }}>
+              Waking up parish server (Cold start can take 30-45 seconds). Please wait...
+            </Text>
+          )}
+
           </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

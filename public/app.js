@@ -40,7 +40,7 @@ const T = {
   },
   ta: {
     appName: 'செயின்ட் அந்தோனி சர்ச்', home: 'முகப்பு', videos: 'வீடியோ', audio: 'ஆடியோ',
-    events: 'நிகழ்வுகள்', bible: 'வேதாகமம்', prayer: 'ஜெபம்', devotional: 'தியானங்கள்',
+    events: 'நிகழ்வுகள்', bible: 'வேதாகமம்', prayer: 'ஜெபம்', devotional: 'பிரார்த்தனைகள்',
     worship: 'ஆராதனை', journal: 'ஜர்னல்', articles: 'கட்டுரைகள்', quiz: 'வேத வினாடி வினா',
     history: 'வரலாறு', announce: 'அறிவிப்புகள்', logout: 'வெளியேறு',
     welcome: 'விசுவாசத்தில் அமைதி காணுங்கள்', enterChurch: 'சபையில் நுழையுங்கள்',
@@ -94,7 +94,7 @@ function showToast(msg, type = 'info', duration = 3500) {
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
   const icons = { success: '✅', error: '❌', info: '✝️' };
-  toast.innerHTML = `<span>${icons[type]||'ℹ️'}</span><span>${msg}</span>`;
+  toast.innerHTML = `<span>${icons[type] || 'ℹ️'}</span><span>${msg}</span>`;
   container.appendChild(toast);
   setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateX(30px)'; setTimeout(() => toast.remove(), 400); }, duration);
 }
@@ -114,24 +114,24 @@ function initMockData() {
       { id: "1", title: "Morning Devotional: Finding Peace", pastor: "Pastor John", description: "Start your day with a reflection on peace and gratitude.", filename: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3", created_at: new Date().toISOString() },
       { id: "2", title: "Sermon: Faith Over Fear", pastor: "Pastor Sarah", description: "Trusting in God's plan in every season.", filename: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3", created_at: new Date().toISOString() }
     ];
-    
+
     const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1); tomorrow.setHours(9, 0, 0, 0);
     const nextWeek = new Date(); nextWeek.setDate(nextWeek.getDate() + 5); nextWeek.setHours(18, 30, 0, 0);
-    
+
     const defaultEvents = [
       { id: "1", title: "Sunday Worship & Communion", date: tomorrow.toISOString().split('T')[0], time: "09:00", location: "Main Sanctuary", description: "Join us for sermon, prayer, and communion service.", created_at: new Date().toISOString() },
       { id: "2", title: "Youth Fellowship Night", date: nextWeek.toISOString().split('T')[0], time: "18:30", location: "Church Fellowship Hall", description: "A fun and spiritual time for youth and young adults.", created_at: new Date().toISOString() }
     ];
-    
+
     const defaultPrayers = [
       { id: "1", member_name: "John Doe", request: "Pray for my grandmother's health recovery.", anonymous: 0, answered: 0, created_at: new Date().toISOString() },
       { id: "2", member_name: "Anonymous", request: "Strength and guidance in making a career decision.", anonymous: 1, answered: 0, created_at: new Date().toISOString() }
     ];
-    
+
     const defaultJournal = [
       { id: "1", title: "First Entry", content: "Today I felt a deep sense of peace during morning prayer.", mood: "Peaceful", created_at: new Date().toISOString() }
     ];
-    
+
     const defaultQuiz = [
       { id: "1", question: "How many books are in the Bible?", options: ["66", "72", "39", "27"], answer: "66" },
       { id: "2", question: "Who built the Ark?", options: ["Noah", "Moses", "David", "Abraham"], answer: "Noah" },
@@ -149,7 +149,7 @@ function initMockData() {
     const defaultArticles = [
       { id: "1", title: "Understanding Faith", content: "Faith is not about having all the answers. It is about trusting God even when we cannot see the path ahead. True faith grows in times of trial.", created_at: new Date().toISOString() }
     ];
-    
+
     localStorage.setItem('mock_verses', JSON.stringify(defaultVerses));
     localStorage.setItem('mock_videos', JSON.stringify(defaultVideos));
     localStorage.setItem('mock_audio', JSON.stringify(defaultAudio));
@@ -169,7 +169,7 @@ function initMockData() {
 async function handleMockAPI(method, path, body) {
   initMockData();
   const cleanPath = path.split('?')[0];
-  
+
   if (cleanPath === '/auth/register' || cleanPath === '/auth/member/register') {
     const users = JSON.parse(localStorage.getItem('mock_users') || '[]');
     if (users.find(u => u.phone === body.phone)) {
@@ -180,7 +180,7 @@ async function handleMockAPI(method, path, body) {
     localStorage.setItem('mock_users', JSON.stringify(users));
     return { message: 'Registered successfully' };
   }
-  
+
   if (cleanPath === '/auth/login' || cleanPath === '/auth/member/login') {
     const users = JSON.parse(localStorage.getItem('mock_users') || '[]');
     const user = users.find(u => u.phone === body.phone && u.name === body.name && u.password === body.password);
@@ -190,7 +190,7 @@ async function handleMockAPI(method, path, body) {
     localStorage.setItem('mock_user_name', user.name);
     return { token: 'mock-member-token-' + user.id, member: { id: user.id, name: user.name, phone: user.phone } };
   }
-  
+
   if (cleanPath === '/auth/admin-login' || cleanPath === '/auth/admin/login') {
     if (body.name === 'admin' && body.password === 'admin123') {
       localStorage.setItem('mock_role', 'admin');
@@ -551,8 +551,8 @@ function createParticles() {
   if (!container) return;
   for (let i = 0; i < 20; i++) {
     const p = document.createElement('div');
-    p.style.cssText = `position:absolute;color:rgba(200,153,26,${Math.random()*0.3+0.05});font-size:${Math.random()*14+8}px;left:${Math.random()*100}%;top:${Math.random()*100}%;animation:float-particle ${Math.random()*15+10}s ease-in-out ${Math.random()*5}s infinite alternate;pointer-events:none;`;
-    p.textContent = ['✝', '☩', '✞', '✟'][Math.floor(Math.random()*4)];
+    p.style.cssText = `position:absolute;color:rgba(200,153,26,${Math.random() * 0.3 + 0.05});font-size:${Math.random() * 14 + 8}px;left:${Math.random() * 100}%;top:${Math.random() * 100}%;animation:float-particle ${Math.random() * 15 + 10}s ease-in-out ${Math.random() * 5}s infinite alternate;pointer-events:none;`;
+    p.textContent = ['✝', '☩', '✞', '✟'][Math.floor(Math.random() * 4)];
     container.appendChild(p);
   }
   if (!document.getElementById('particle-style')) {
@@ -829,7 +829,7 @@ async function loadHome() {
       const verseText = currentLang === 'ta' && vod.verse_tamil ? vod.verse_tamil : vod.verse;
       document.getElementById('hero-daily-verse').textContent = `"${verseText}" — ${vod.reference}`;
     }
-  } catch (_) {}
+  } catch (_) { }
   if (verses.length && document.getElementById('hero-daily-verse').textContent === 'Loading verse...') {
     const v = verses[Math.floor(Math.random() * verses.length)];
     const verseText = currentLang === 'ta' && v.verse_tamil ? v.verse_tamil : v.verse;
@@ -839,7 +839,7 @@ async function loadHome() {
     const challenges = await api('GET', '/platform/challenges');
     const hc = document.getElementById('home-challenge');
     if (hc && challenges.length) hc.innerHTML = `<strong>${challenges[0].title}</strong><p>${challenges[0].description}</p><button class="btn-feature small" onclick="switchMemberSection('challenges')">View Challenges →</button>`;
-  } catch (_) {}
+  } catch (_) { }
   // Next event countdown
   renderNextEventCountdown(events);
   // Latest 3 videos
@@ -985,7 +985,7 @@ function audioCardHTML(a) {
     <div class="audio-card-info" style="flex:1;">
       <div class="audio-card-title">${a.title}</div>
       <div class="audio-card-pastor">🎤 ${a.pastor || 'Unknown'} · ${timeAgo(a.created_at)}</div>
-      ${a.filename ? `<div class="audio-player-wrapper" style="margin-top:0.5rem;"><audio controls src="${resolveUrl(a.filename)}" onplay="logHistory('listened','audio',${a.id},'${a.title.replace(/'/g,"\\'")}')"></audio></div>` : ''}
+      ${a.filename ? `<div class="audio-player-wrapper" style="margin-top:0.5rem;"><audio controls src="${resolveUrl(a.filename)}" onplay="logHistory('listened','audio',${a.id},'${a.title.replace(/'/g, "\\'")}')"></audio></div>` : ''}
     </div>
   </div>`;
 }
@@ -1010,7 +1010,7 @@ function eventCardHTML(e) {
   const day = d.getDate();
   const month = d.toLocaleDateString('en-IN', { month: 'short' });
   const isPast = d < new Date();
-  const diffMs = new Date(`${e.event_date}T${e.event_time||'00:00'}`) - Date.now();
+  const diffMs = new Date(`${e.event_date}T${e.event_time || '00:00'}`) - Date.now();
   const daysLeft = Math.ceil(diffMs / 86400000);
   const countdown = daysLeft > 0 ? `⏳ ${daysLeft} day${daysLeft !== 1 ? 's' : ''} away` : isPast ? '✅ Completed' : '🔴 Today!';
   return `<div class="event-card">
@@ -1034,82 +1034,82 @@ window.registerEvent = async (id) => {
 
 // ─── Event Galleries ────────────────────────────────────
 async function loadEventGalleries() {
-    const sec = document.getElementById('section-event-galleries');
-    if (!document.getElementById('event-galleries-list')) {
-      sec.innerHTML = `<div class="section-header"><h2>🖼️ Event Galleries</h2><p>View photos and videos from past events</p></div>
+  const sec = document.getElementById('section-event-galleries');
+  if (!document.getElementById('event-galleries-list')) {
+    sec.innerHTML = `<div class="section-header"><h2>🖼️ Event Galleries</h2><p>View photos and videos from past events</p></div>
                        <div id="event-gallery-viewer" style="display:none; margin-bottom:2rem;">
                           <button class="btn-secondary" onclick="closeGalleryViewer()" style="margin-bottom:1rem;">← Back to Galleries</button>
                           <h3 id="viewer-title"></h3>
                           <div id="viewer-media-grid" class="content-grid feature-grid"></div>
                        </div>
                        <div class="content-grid feature-grid" id="event-galleries-list"><div class="loading-state">Loading...</div></div>`;
+  }
+  document.getElementById('event-gallery-viewer').style.display = 'none';
+  document.getElementById('event-galleries-list').style.display = 'grid';
+
+  const list = document.getElementById('event-galleries-list');
+  try {
+    const galleries = await api('GET', '/platform/event-galleries');
+    if (galleries.length === 0) {
+      list.innerHTML = `<div class="empty-state">No galleries available.</div>`;
+      return;
     }
-    document.getElementById('event-gallery-viewer').style.display = 'none';
-    document.getElementById('event-galleries-list').style.display = 'grid';
-    
-    const list = document.getElementById('event-galleries-list');
-    try {
-      const galleries = await api('GET', '/platform/event-galleries');
-      if (galleries.length === 0) {
-        list.innerHTML = `<div class="empty-state">No galleries available.</div>`;
-        return;
-      }
-      list.innerHTML = galleries.map(g => `
+    list.innerHTML = galleries.map(g => `
         <div class="card card-hover" onclick="openGallery(${g.id}, '${g.title.replace(/'/g, "\\'")}')" style="cursor:pointer; text-align:center;">
           <div style="font-size:3rem; margin-bottom:1rem;">📁</div>
           <h3>${g.title}</h3>
           <p class="meta">${g.event_date || ''}</p>
         </div>
       `).join('');
-      if (window.applyLang) window.applyLang();
-    } catch (e) { list.innerHTML = `<div class="error-state">${e.message}</div>`; }
-  }
+    if (window.applyLang) window.applyLang();
+  } catch (e) { list.innerHTML = `<div class="error-state">${e.message}</div>`; }
+}
 
-  window.openGallery = async (id, title) => {
-    document.getElementById('event-galleries-list').style.display = 'none';
-    const viewer = document.getElementById('event-gallery-viewer');
-    viewer.style.display = 'block';
-    document.getElementById('viewer-title').innerText = title;
-    const grid = document.getElementById('viewer-media-grid');
-    grid.innerHTML = '<div class="loading-state">Loading media...</div>';
-    try {
-      const media = await api('GET', `/platform/event-galleries/${id}/media`);
-      if (media.length === 0) {
-        grid.innerHTML = '<div class="empty-state">No media in this gallery.</div>';
-        return;
-      }
-      grid.innerHTML = media.map(m => {
-        if (m.media_type === 'video') {
-          return `<div class="card" style="padding:0; overflow:hidden; position:relative;">
+window.openGallery = async (id, title) => {
+  document.getElementById('event-galleries-list').style.display = 'none';
+  const viewer = document.getElementById('event-gallery-viewer');
+  viewer.style.display = 'block';
+  document.getElementById('viewer-title').innerText = title;
+  const grid = document.getElementById('viewer-media-grid');
+  grid.innerHTML = '<div class="loading-state">Loading media...</div>';
+  try {
+    const media = await api('GET', `/platform/event-galleries/${id}/media`);
+    if (media.length === 0) {
+      grid.innerHTML = '<div class="empty-state">No media in this gallery.</div>';
+      return;
+    }
+    grid.innerHTML = media.map(m => {
+      if (m.media_type === 'video') {
+        return `<div class="card" style="padding:0; overflow:hidden; position:relative;">
                     <video src="${m.url}" controls style="width:100%; height:200px; object-fit:cover; background:#000;" onplay="viewGalleryMedia(${m.id}, null)"></video>
                     <button style="position:absolute; bottom:10px; right:10px; background:rgba(0,0,0,0.5); color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;" onclick="likeGalleryMedia(${m.id})">❤️ Like</button>
                   </div>`;
-        } else {
-          return `<div class="card" style="padding:0; overflow:hidden; position:relative;">
+      } else {
+        return `<div class="card" style="padding:0; overflow:hidden; position:relative;">
                     <img src="${m.url}" style="width:100%; height:200px; object-fit:cover; cursor:pointer;" onclick="viewGalleryMedia(${m.id}, '${m.url}')">
                     <button style="position:absolute; bottom:10px; right:10px; background:rgba(0,0,0,0.5); color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;" onclick="likeGalleryMedia(${m.id})">❤️ Like</button>
                   </div>`;
-        }
-      }).join('');
-    } catch (e) { grid.innerHTML = `<div class="error-state">${e.message}</div>`; }
-  };
+      }
+    }).join('');
+  } catch (e) { grid.innerHTML = `<div class="error-state">${e.message}</div>`; }
+};
 
-  window.viewGalleryMedia = async (id, url) => {
-    try { await api('POST', `/platform/event-galleries/media/${id}/view`); } catch(e){}
-    if(url) window.open(url, '_blank');
-  };
-  
-  window.likeGalleryMedia = async (id) => {
-    try { 
-        await api('POST', `/platform/event-galleries/media/${id}/like`); 
-        showToast('Liked!', 'success');
-    } catch(e) { showToast(e.message, 'error'); }
-  };
+window.viewGalleryMedia = async (id, url) => {
+  try { await api('POST', `/platform/event-galleries/media/${id}/view`); } catch (e) { }
+  if (url) window.open(url, '_blank');
+};
 
-  window.closeGalleryViewer = () => {
-    document.getElementById('event-gallery-viewer').style.display = 'none';
-    document.getElementById('event-galleries-list').style.display = 'grid';
-  };
+window.likeGalleryMedia = async (id) => {
+  try {
+    await api('POST', `/platform/event-galleries/media/${id}/like`);
+    showToast('Liked!', 'success');
+  } catch (e) { showToast(e.message, 'error'); }
+};
+
+window.closeGalleryViewer = () => {
+  document.getElementById('event-gallery-viewer').style.display = 'none';
+  document.getElementById('event-galleries-list').style.display = 'grid';
+};
 
 // ── Bible ─────────────────────────────────────────────
 async function loadBible() {
@@ -1124,7 +1124,7 @@ async function loadBible() {
     if (!verses.length) { grid.innerHTML = '<div class="empty-state">No verses yet. 📖</div>'; return; }
     grid.innerHTML = verses.map(v => {
       const text = currentLang === 'ta' && v.verse_tamil ? v.verse_tamil : v.verse;
-      return `<div class="verse-card" onclick="logHistory('read','verse',${v.id},'${v.reference.replace(/'/g,"\\'")}')">
+      return `<div class="verse-card" onclick="logHistory('read','verse',${v.id},'${v.reference.replace(/'/g, "\\'")}')">
         <div class="verse-text">${text}</div>
         <div class="verse-reference">— ${v.reference}</div>
       </div>`;
@@ -1218,7 +1218,7 @@ async function loadPrayer() {
     const s = await api('GET', `/streaks/${currentUser.id}`);
     const el = document.getElementById('prayer-streak-count');
     if (el) el.textContent = s.prayer_streak || 0;
-  } catch (_) {}
+  } catch (_) { }
   fetchPrayerRequests();
 }
 
@@ -1272,7 +1272,7 @@ async function loadDevotionals() {
     const s = await api('GET', `/streaks/${currentUser.id}`);
     const el = document.getElementById('dev-streak-count');
     if (el) el.textContent = s.devotional_streak || 0;
-  } catch (_) {}
+  } catch (_) { }
   const list = document.getElementById('devotionals-list');
   try {
     const devs = await api('GET', '/devotionals');
@@ -1290,7 +1290,7 @@ async function loadDevotionals() {
   } catch (e) { list.innerHTML = `<div class="empty-state">${e.message}</div>`; }
 }
 
-window.openDevotional = function(id) {
+window.openDevotional = function (id) {
   const d = (window._devotionals || []).find(x => x.id === id);
   if (!d) return;
   const modal = document.createElement('div');
@@ -1367,7 +1367,7 @@ function renderWorship(songs) {
     </div>`).join('');
 }
 
-window.openLyrics = function(id) {
+window.openLyrics = function (id) {
   const s = (window._worshipSongs || []).find(x => x.id === id);
   if (!s) return;
   const modal = document.createElement('div');
@@ -1400,8 +1400,8 @@ async function loadJournal() {
           <h3 style="margin-bottom:1rem;font-size:1rem;">✍️ New Entry</h3>
           <input type="text" id="journal-title-input" placeholder="Title (optional)" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:.75rem 1rem;color:var(--text);font-size:.9rem;margin-bottom:.75rem;">
           <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem;">
-            ${['Grateful','Hopeful','Peaceful','Struggling','Joyful','Faithful'].map(m =>
-              `<button class="mood-btn" data-mood="${m}">${m}</button>`).join('')}
+            ${['Grateful', 'Hopeful', 'Peaceful', 'Struggling', 'Joyful', 'Faithful'].map(m =>
+      `<button class="mood-btn" data-mood="${m}">${m}</button>`).join('')}
           </div>
           <textarea id="journal-content-input" placeholder="${t('writeJournal')}" rows="5" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:.75rem 1rem;color:var(--text);font-size:.9rem;resize:vertical;margin-bottom:.75rem;"></textarea>
           <button id="save-journal-btn" class="btn-auth-submit" style="max-width:180px;">
@@ -1449,21 +1449,21 @@ async function fetchJournalEntries() {
   try {
     const entries = await api('GET', `/journal/${currentUser.id}`);
     if (!entries.length) { list.innerHTML = '<div class="empty-state">No entries yet. Start writing your faith journey! 📔</div>'; return; }
-    const moodEmojis = { Grateful:'🙏', Hopeful:'🌟', Peaceful:'☮️', Struggling:'💔', Joyful:'😊', Faithful:'✝️' };
+    const moodEmojis = { Grateful: '🙏', Hopeful: '🌟', Peaceful: '☮️', Struggling: '💔', Joyful: '😊', Faithful: '✝️' };
     list.innerHTML = entries.map(e => `
       <div class="journal-entry">
         <div class="journal-entry-header">
-          <span class="journal-mood">${moodEmojis[e.mood]||'📝'} ${e.mood}</span>
+          <span class="journal-mood">${moodEmojis[e.mood] || '📝'} ${e.mood}</span>
           <span class="journal-date">${formatDate(e.created_at)}</span>
         </div>
         ${e.title ? `<div class="journal-entry-title">${e.title}</div>` : ''}
-        <div class="journal-entry-content">${e.content.replace(/\n/g,'<br>')}</div>
+        <div class="journal-entry-content">${e.content.replace(/\n/g, '<br>')}</div>
         <button class="journal-delete-btn" onclick="deleteJournal(${e.id}, this)">🗑 Delete</button>
       </div>`).join('');
   } catch (err) { if (list) list.innerHTML = `<div class="empty-state">${err.message}</div>`; }
 }
 
-window.deleteJournal = async function(id, btn) {
+window.deleteJournal = async function (id, btn) {
   if (!confirm('Delete this journal entry?')) return;
   try {
     await api('DELETE', `/journal/${id}`);
@@ -1500,21 +1500,21 @@ async function loadArticles() {
   } catch (e) { list.innerHTML = `<div class="empty-state">${e.message}</div>`; }
 }
 
-window.openArticle = function(id) {
-  const a = (window._articles||[]).find(x=>x.id===id);
-  if(!a) return;
+window.openArticle = function (id) {
+  const a = (window._articles || []).find(x => x.id === id);
+  if (!a) return;
   const modal = document.createElement('div');
-  modal.className='modal'; modal.id='article-modal';
-  modal.innerHTML=`<div class="modal-backdrop" onclick="document.getElementById('article-modal').remove()"></div>
+  modal.className = 'modal'; modal.id = 'article-modal';
+  modal.innerHTML = `<div class="modal-backdrop" onclick="document.getElementById('article-modal').remove()"></div>
     <div class="modal-content" style="max-width:680px;padding:2rem;max-height:85vh;overflow-y:auto;">
       <button class="modal-close" onclick="document.getElementById('article-modal').remove()">✕</button>
       <div class="article-category-badge" style="margin-bottom:1rem;">${a.category}</div>
       <h2 style="font-family:'Playfair Display',serif;font-size:1.5rem;margin-bottom:.75rem;">${a.title}</h2>
-      <p style="color:var(--gold);margin-bottom:1.5rem;">✍️ ${a.author||'Admin'} · ${formatDate(a.created_at)}</p>
-      <div style="line-height:1.9;color:var(--text-muted);font-size:.95rem;">${a.content.replace(/\n/g,'<br>').replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')}</div>
+      <p style="color:var(--gold);margin-bottom:1.5rem;">✍️ ${a.author || 'Admin'} · ${formatDate(a.created_at)}</p>
+      <div style="line-height:1.9;color:var(--text-muted);font-size:.95rem;">${a.content.replace(/\n/g, '<br>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')}</div>
     </div>`;
   document.body.appendChild(modal);
-  logHistory('read','article',a.id,a.title);
+  logHistory('read', 'article', a.id, a.title);
 };
 
 // ── Bible Quiz ────────────────────────────────────────
@@ -1572,13 +1572,13 @@ async function loadQuiz() {
   } catch (e) { showToast(e.message, 'error'); }
 }
 
-window.startQuiz = async function() {
+window.startQuiz = async function () {
   let questions = quizQuestions;
   const diff = document.getElementById('quiz-difficulty')?.value;
   if (diff && diff !== 'all') questions = questions.filter(q => q.difficulty === diff);
   if (!questions.length) { showToast('No questions found!', 'error'); return; }
   // Shuffle and take 10
-  const shuffled = questions.sort(() => Math.random()-0.5).slice(0, Math.min(10, questions.length));
+  const shuffled = questions.sort(() => Math.random() - 0.5).slice(0, Math.min(10, questions.length));
   window._quizSet = shuffled;
   quizIndex = 0; quizScore = 0;
   document.getElementById('quiz-start-screen').classList.add('hidden');
@@ -1590,12 +1590,12 @@ window.startQuiz = async function() {
 function showQuizQuestion() {
   const q = window._quizSet[quizIndex];
   const total = window._quizSet.length;
-  document.getElementById('quiz-progress-text').textContent = `Question ${quizIndex+1} of ${total}`;
-  document.getElementById('quiz-progress-fill').style.width = `${((quizIndex)/total)*100}%`;
+  document.getElementById('quiz-progress-text').textContent = `Question ${quizIndex + 1} of ${total}`;
+  document.getElementById('quiz-progress-fill').style.width = `${((quizIndex) / total) * 100}%`;
   document.getElementById('quiz-question-text').textContent = q.question;
   const opts = [
-    { key:'a', text:q.option_a }, { key:'b', text:q.option_b },
-    { key:'c', text:q.option_c }, { key:'d', text:q.option_d }
+    { key: 'a', text: q.option_a }, { key: 'b', text: q.option_b },
+    { key: 'c', text: q.option_c }, { key: 'd', text: q.option_d }
   ];
   document.getElementById('quiz-options').innerHTML = opts.map(o => `
     <button class="quiz-option-btn" data-key="${o.key}" onclick="selectQuizOption('${o.key}', '${q.correct_answer}', this)">
@@ -1606,7 +1606,7 @@ function showQuizQuestion() {
     quizIndex === window._quizSet.length - 1 ? t('quizFinish') : t('quizNext');
 }
 
-window.selectQuizOption = function(selected, correct, btn) {
+window.selectQuizOption = function (selected, correct, btn) {
   if (!document.getElementById('quiz-next-btn') || !document.getElementById('quiz-next-btn').disabled) return;
   const isCorrect = selected === correct;
   if (isCorrect) quizScore++;
@@ -1619,7 +1619,7 @@ window.selectQuizOption = function(selected, correct, btn) {
   showToast(isCorrect ? `✅ ${t('correct')}` : `❌ ${t('wrong')} Correct: ${correct.toUpperCase()}`, isCorrect ? 'success' : 'error', 2000);
 };
 
-window.nextQuizQuestion = function() {
+window.nextQuizQuestion = function () {
   quizIndex++;
   if (quizIndex >= window._quizSet.length) {
     showQuizResult();
@@ -1637,7 +1637,7 @@ function showQuizResult() {
   document.getElementById('quiz-score-display').textContent = `${quizScore} / ${total}`;
   document.getElementById('quiz-result-msg').textContent = pct >= 80 ? 'You know your Bible very well! Keep it up, faithful servant.' :
     pct >= 60 ? 'Good knowledge! Keep reading God\'s Word daily.' :
-    'No worries! Every day is a chance to learn more about the Bible.';
+      'No worries! Every day is a chance to learn more about the Bible.';
 }
 
 // ── Announcements ─────────────────────────────────────
@@ -1686,10 +1686,10 @@ async function loadHistory() {
   try {
     const items = await api('GET', `/history/${currentUser.id}`);
     if (!items.length) { list.innerHTML = '<div class="empty-state">No activity yet. Start exploring the app! 🙏</div>'; return; }
-    const icons = { video:'🎬', audio:'🎵', verse:'📖', devotional:'✝️', worship:'🎤', article:'📰' };
+    const icons = { video: '🎬', audio: '🎵', verse: '📖', devotional: '✝️', worship: '🎤', article: '📰' };
     list.innerHTML = items.map(h => `
       <div class="history-item">
-        <div class="history-icon">${icons[h.content_type]||'📌'}</div>
+        <div class="history-icon">${icons[h.content_type] || '📌'}</div>
         <div class="history-info">
           <div class="history-title">${h.content_title || 'Content'}</div>
           <div class="history-meta">${h.action} · ${h.content_type} · ${timeAgo(h.timestamp)}</div>
@@ -1703,7 +1703,7 @@ async function logHistory(action, content_type, content_id, content_title) {
   if (!currentUser || currentUser.role !== 'member') return;
   try {
     await api('POST', '/history', { member_id: currentUser.id, action, content_type, content_id, content_title });
-  } catch (_) {}
+  } catch (_) { }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1792,9 +1792,9 @@ async function loadAdminSection(section) {
 async function loadAdminDashboard() {
   try {
     const [videos, audio, events, verses, devs, announcements, prayer, songs, articles, members] = await Promise.all([
-      api('GET','/videos'), api('GET','/audio'), api('GET','/events'), api('GET','/verses'),
-      api('GET','/devotionals'), api('GET','/announcements'), api('GET','/prayer'),
-      api('GET','/worship'), api('GET','/articles'), api('GET','/members')
+      api('GET', '/videos'), api('GET', '/audio'), api('GET', '/events'), api('GET', '/verses'),
+      api('GET', '/devotionals'), api('GET', '/announcements'), api('GET', '/prayer'),
+      api('GET', '/worship'), api('GET', '/articles'), api('GET', '/members')
     ]);
     document.getElementById('admin-stat-videos').textContent = videos.length;
     document.getElementById('admin-stat-audio').textContent = audio.length;
@@ -1818,7 +1818,7 @@ function initVideoUpload() {
   document.getElementById('video-file').addEventListener('change', (e) => {
     const f = e.target.files[0];
     const info = document.getElementById('video-file-info');
-    if (f) { info.textContent = `📁 ${f.name} (${(f.size/1024/1024).toFixed(1)} MB)`; info.classList.remove('hidden'); }
+    if (f) { info.textContent = `📁 ${f.name} (${(f.size / 1024 / 1024).toFixed(1)} MB)`; info.classList.remove('hidden'); }
   });
   document.getElementById('upload-video-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -1876,7 +1876,7 @@ function initAudioUpload() {
   el.addEventListener('change', (e) => {
     const f = e.target.files[0];
     const info = document.getElementById('audio-file-info');
-    if (f) { info.textContent = `🎵 ${f.name} (${(f.size/1024/1024).toFixed(1)} MB)`; info.classList.remove('hidden'); }
+    if (f) { info.textContent = `🎵 ${f.name} (${(f.size / 1024 / 1024).toFixed(1)} MB)`; info.classList.remove('hidden'); }
   });
   document.getElementById('upload-audio-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -1922,7 +1922,7 @@ function initAddEvent() {
         location: document.getElementById('event-location').value.trim(),
         description: document.getElementById('event-desc').value.trim()
       });
-      
+
       if (document.getElementById('event-attach-notes').checked) {
         const notesTitle = document.getElementById('event-notes-title').value.trim();
         const notesContent = document.getElementById('event-notes-content').value.trim();
@@ -2005,7 +2005,7 @@ function initAddAnnouncement() {
         type: document.getElementById('ann-type').value,
         is_emergency: document.getElementById('ann-emergency').checked
       });
-      
+
       if (document.getElementById('ann-attach-bulletin').checked) {
         const bulTitle = document.getElementById('ann-bulletin-title').value.trim();
         const bulContent = document.getElementById('ann-bulletin-content').value.trim();
@@ -2120,7 +2120,7 @@ async function loadAdminAudio() {
   list.innerHTML = audios.map(a => `
     <div class="admin-list-item">
       <div class="ali-icon">🎵</div>
-      <div class="ali-info"><div class="ali-title">${a.title}</div><div class="ali-meta">🎤 ${a.pastor||'Unknown'} · ${timeAgo(a.created_at)}</div></div>
+      <div class="ali-info"><div class="ali-title">${a.title}</div><div class="ali-meta">🎤 ${a.pastor || 'Unknown'} · ${timeAgo(a.created_at)}</div></div>
       <button class="ali-delete" onclick="adminDelete('/audio/${a.id}','admin-audio-list',loadAdminAudio)">🗑 Delete</button>
     </div>`).join('');
 }
@@ -2133,7 +2133,7 @@ async function loadAdminEvents() {
   list.innerHTML = events.map(e => `
     <div class="admin-list-item">
       <div class="ali-icon">📅</div>
-      <div class="ali-info"><div class="ali-title">${e.title}</div><div class="ali-meta">${e.event_date}${e.event_time?' · '+e.event_time:''} · ${e.location||''}</div></div>
+      <div class="ali-info"><div class="ali-title">${e.title}</div><div class="ali-meta">${e.event_date}${e.event_time ? ' · ' + e.event_time : ''} · ${e.location || ''}</div></div>
       <button class="ali-delete" onclick="adminDelete('/events/${e.id}','admin-events-list',loadAdminEvents)">🗑 Delete</button>
     </div>`).join('');
 }
@@ -2146,7 +2146,7 @@ async function loadAdminVerses() {
   list.innerHTML = verses.map(v => `
     <div class="admin-list-item">
       <div class="ali-icon">📖</div>
-      <div class="ali-info"><div class="ali-title">${v.reference}</div><div class="ali-meta">${v.verse.slice(0,80)}...</div></div>
+      <div class="ali-info"><div class="ali-title">${v.reference}</div><div class="ali-meta">${v.verse.slice(0, 80)}...</div></div>
       <button class="ali-delete" onclick="adminDelete('/verses/${v.id}','admin-verses-list',loadAdminVerses)">🗑 Delete</button>
     </div>`).join('');
 }
@@ -2171,7 +2171,7 @@ async function loadAdminAnnouncements() {
   if (!items.length) { list.innerHTML = '<div class="empty-state">No announcements yet.</div>'; return; }
   list.innerHTML = items.map(a => `
     <div class="admin-list-item">
-      <div class="ali-icon">${a.is_emergency?'🚨':'📢'}</div>
+      <div class="ali-icon">${a.is_emergency ? '🚨' : '📢'}</div>
       <div class="ali-info"><div class="ali-title">${a.title}</div><div class="ali-meta">${a.type} · ${timeAgo(a.created_at)}</div></div>
       <button class="ali-delete" onclick="adminDelete('/announcements/${a.id}','admin-announcements-list',loadAdminAnnouncements)">🗑 Delete</button>
     </div>`).join('');
@@ -2185,7 +2185,7 @@ async function loadAdminWorship() {
   list.innerHTML = items.map(s => `
     <div class="admin-list-item">
       <div class="ali-icon">🎵</div>
-      <div class="ali-info"><div class="ali-title">${s.title}</div><div class="ali-meta">${s.artist||'Unknown'} · ${s.language}</div></div>
+      <div class="ali-info"><div class="ali-title">${s.title}</div><div class="ali-meta">${s.artist || 'Unknown'} · ${s.language}</div></div>
       <button class="ali-delete" onclick="adminDelete('/worship/${s.id}','admin-worship-list',loadAdminWorship)">🗑 Delete</button>
     </div>`).join('');
 }
@@ -2198,7 +2198,7 @@ async function loadAdminArticles() {
   list.innerHTML = items.map(a => `
     <div class="admin-list-item">
       <div class="ali-icon">📰</div>
-      <div class="ali-info"><div class="ali-title">${a.title}</div><div class="ali-meta">✍️ ${a.author||'Admin'} · ${a.category}</div></div>
+      <div class="ali-info"><div class="ali-title">${a.title}</div><div class="ali-meta">✍️ ${a.author || 'Admin'} · ${a.category}</div></div>
       <button class="ali-delete" onclick="adminDelete('/articles/${a.id}','admin-articles-list',loadAdminArticles)">🗑 Delete</button>
     </div>`).join('');
 }
@@ -2228,20 +2228,20 @@ async function loadAdminPrayer() {
   if (!items.length) { list.innerHTML = '<div class="empty-state">No prayer requests yet.</div>'; return; }
   list.innerHTML = items.map(p => `
     <div class="admin-list-item" style="flex-wrap:wrap;gap:.5rem;">
-      <div class="ali-icon">${p.is_emergency?'🚨':'🙏'}</div>
+      <div class="ali-icon">${p.is_emergency ? '🚨' : '🙏'}</div>
       <div class="ali-info" style="flex:1;">
-        <div class="ali-title">${p.is_anonymous?'Anonymous':p.member_name} — ${p.category}</div>
-        <div class="ali-meta">${p.request.slice(0,100)}${p.request.length>100?'...':''}</div>
-        ${p.is_answered?'<span style="color:#2ecc71;font-size:.78rem;">✅ Answered</span>':''}
+        <div class="ali-title">${p.is_anonymous ? 'Anonymous' : p.member_name} — ${p.category}</div>
+        <div class="ali-meta">${p.request.slice(0, 100)}${p.request.length > 100 ? '...' : ''}</div>
+        ${p.is_answered ? '<span style="color:#2ecc71;font-size:.78rem;">✅ Answered</span>' : ''}
       </div>
       <div style="display:flex;gap:.5rem;flex-shrink:0;">
-        ${!p.is_answered?`<button class="ali-delete" style="background:rgba(46,204,113,.1);border-color:rgba(46,204,113,.3);color:#2ecc71;" onclick="markPrayerAnswered(${p.id})">✅ Answered</button>`:''}
+        ${!p.is_answered ? `<button class="ali-delete" style="background:rgba(46,204,113,.1);border-color:rgba(46,204,113,.3);color:#2ecc71;" onclick="markPrayerAnswered(${p.id})">✅ Answered</button>` : ''}
         <button class="ali-delete" onclick="adminDelete('/prayer/${p.id}','admin-prayer-list',loadAdminPrayer)">🗑</button>
       </div>
     </div>`).join('');
 }
 
-window.markPrayerAnswered = async function(id) {
+window.markPrayerAnswered = async function (id) {
   const testimony = prompt('Enter answered prayer testimony (optional):') || '';
   try {
     await api('PATCH', `/prayer/${id}/answered`, { testimony });
@@ -2402,7 +2402,7 @@ function injectDynamicStyles() {
 function boot() {
   injectDynamicStyles();
   applyTheme();
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => { });
 
   // Check existing session
   const savedUser = localStorage.getItem('user');

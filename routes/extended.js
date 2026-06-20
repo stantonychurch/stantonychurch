@@ -143,6 +143,21 @@ router.delete('/testimonies/:id', authenticateToken, async (req, res) => {
 router.get('/memorization/:memberId', authenticateToken, async (req, res) => {
     res.json((await db.query('SELECT * FROM scripture_memorization WHERE member_id = ? ORDER BY created_at DESC', [req.params.memberId]))[0]);
 });
+
+router.get('/global-memorizations', authenticateToken, async (req, res) => {
+    res.json((await db.query('SELECT * FROM global_memorizations ORDER BY created_at DESC'))[0]);
+});
+
+router.post('/global-memorizations', authenticateToken, async (req, res) => {
+    const { verse, reference } = req.body;
+    const r = (await db.query('INSERT INTO global_memorizations (verse, reference, added_by) VALUES (?, ?, ?)', [verse, reference, req.user.name]))[0];
+    res.json({ id: r.insertId });
+});
+
+router.delete('/global-memorizations/:id', authenticateToken, async (req, res) => {
+    (await db.query('DELETE FROM global_memorizations WHERE id = ?', [req.params.id]))[0];
+    res.json({ success: true });
+});
 router.post('/memorization', authenticateToken, async (req, res) => {
     const { verse, reference } = req.body;
     const r = (await db.query('INSERT INTO scripture_memorization (member_id, verse, reference) VALUES (?, ?, ?)', [req.user.id, verse, reference]))[0];
@@ -157,7 +172,8 @@ router.delete('/memorization/:id', authenticateToken, async (req, res) => {
     res.json({ message: 'Deleted.' });
 });
 
-// ─── Courses ───────────────────────────────────────────
+// ─── Courses (Removed) ───────────────────────────────────
+/*
 router.get('/courses', authenticateToken, async (req, res) => res.json(await crud('courses').list()));
 router.get('/courses/:id/lessons', authenticateToken, async (req, res) => {
     res.json((await db.query('SELECT * FROM course_lessons WHERE course_id = ? ORDER BY order_num', [req.params.id]))[0]);
@@ -199,6 +215,8 @@ router.delete('/courses/:id', authenticateToken, requireAdmin, async (req, res) 
     await crud('courses').del(req.params.id);
     res.json({ message: 'Deleted.' });
 });
+*/
+
 
 // ─── Prayer Extended ─────────────────────────────────
 router.get('/prayer-groups', authenticateToken, async (req, res) => {
@@ -657,18 +675,109 @@ router.post('/ministry-groups/:id/join', authenticateToken, async (req, res) => 
     (await db.query('INSERT IGNORE INTO ministry_members (group_id, member_id) VALUES (?, ?)', [req.params.id, req.user.id]))[0];
     res.json({ message: 'Joined ministry group!' });
 });
+
+router.get('/ministry-groups/:id/chat', authenticateToken, async (req, res) => {
+    try {
+        const groupId = req.params.id;
+        // Find or create chat for this ministry
+        let [chats] = await db.query('SELECT * FROM group_chats WHERE ministry_group_id = ? LIMIT 1', [groupId]);
+        let chatId;
+        
+        if (chats.length === 0) {
+            const [min] = await db.query('SELECT name FROM ministry_groups WHERE id = ?', [groupId]);
+            if (!min || min.length === 0) return res.status(404).json({ error: 'Ministry not found' });
+            
+            const r = (await db.query('INSERT INTO group_chats (name, chat_type, ministry_group_id) VALUES (?, ?, ?)', [`${min[0].name} Chat`, 'ministry', groupId]))[0];
+            chatId = r.insertId;
+        } else {
+            chatId = chats[0].id;
+        }
+
+        const [messages] = await db.query('SELECT * FROM chat_messages WHERE chat_id = ? ORDER BY created_at ASC', [chatId]);
+        res.json({ chat_id: chatId, messages });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+router.post('/ministry-groups/:id/chat', authenticateToken, async (req, res) => {
+    try {
+        const { message, chat_id } = req.body;
+        if (!message || !chat_id) return res.status(400).json({ error: 'Message and chat_id required' });
+        
+        const r = (await db.query('INSERT INTO chat_messages (chat_id, member_id, member_name, message) VALUES (?, ?, ?, ?)', [
+            chat_id, 
+            req.user.role === 'admin' ? 0 : req.user.id, 
+            req.user.role === 'admin' ? 'Administrator' : req.user.name, 
+            message
+        ]))[0];
+        
+        res.json({ id: r.insertId, message: 'Message sent' });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
 router.get('/volunteers', authenticateToken, async (req, res) => {
-    const opps = await crud('volunteer_opportunities').list();
-    res.json(await Promise.all(opps.map(async o => ({ ...o, signed_up: (await db.query('SELECT COUNT(*) as c FROM volunteer_signups WHERE opportunity_id = ?', [o.id]))[0][0].c }))));
+    try {
+        const opps = await crud('volunteer_opportunities').list();
+        res.json(await Promise.all(opps.map(async o => {
+            const countRes = await db.query('SELECT COUNT(*) as c FROM volunteer_signups WHERE opportunity_id = ?', [o.id]);
+            const signedUpCount = countRes[0][0].c;
+            
+            const userSignupRes = await db.query('SELECT id, instructions FROM volunteer_signups WHERE opportunity_id = ? AND member_id = ?', [o.id, req.user.id]);
+            const isSignedUp = userSignupRes[0].length > 0;
+            const instructions = isSignedUp ? userSignupRes[0][0].instructions : null;
+            
+            return {
+                ...o,
+                signed_up: signedUpCount,
+                user_signed_up: isSignedUp,
+                user_instructions: instructions
+            };
+        })));
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 router.post('/volunteers', authenticateToken, requireAdmin, async (req, res) => {
-    const { title, description, event_id, slots } = req.body;
-    const r = (await db.query('INSERT INTO volunteer_opportunities (title, description, event_id, slots) VALUES (?, ?, ?, ?)', [title, description || '', event_id || null, slots || 10]))[0];
-    res.json({ id: r.insertId });
+    try {
+        const { title, description, event_id, slots } = req.body;
+        const r = (await db.query('INSERT INTO volunteer_opportunities (title, description, event_id, slots) VALUES (?, ?, ?, ?)', [title, description || '', event_id || null, slots || 10]))[0];
+        res.json({ id: r.insertId });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 router.post('/volunteers/:id/signup', authenticateToken, async (req, res) => {
-    (await db.query('INSERT IGNORE INTO volunteer_signups (opportunity_id, member_id) VALUES (?, ?)', [req.params.id, req.user.id]))[0];
-    res.json({ message: 'Signed up to volunteer!' });
+    try {
+        (await db.query('INSERT IGNORE INTO volunteer_signups (opportunity_id, member_id) VALUES (?, ?)', [req.params.id, req.user.id]))[0];
+        res.json({ message: 'Signed up to volunteer!' });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+router.get('/volunteers/:id/signups', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const query = `
+            SELECT vs.id, vs.opportunity_id, vs.member_id, vs.signed_at, vs.instructions, m.name as member_name, m.email as member_email
+            FROM volunteer_signups vs
+            JOIN members m ON vs.member_id = m.id
+            WHERE vs.opportunity_id = ?
+        `;
+        const rows = (await db.query(query, [req.params.id]))[0];
+        res.json(rows);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+router.post('/volunteers/signups/:signupId/instructions', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { instructions } = req.body;
+        await db.query('UPDATE volunteer_signups SET instructions = ? WHERE id = ?', [instructions, req.params.signupId]);
+        res.json({ success: true, message: 'Instructions updated' });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 router.get('/birthdays', authenticateToken, async (req, res) => {
     const members = (await db.query("SELECT id, name, birthday FROM members WHERE birthday IS NOT NULL AND birthday != '' AND status = 'approved'", []))[0];
@@ -771,6 +880,20 @@ router.post('/ai-chat', authenticateToken, async (req, res) => {
     if (verse) answer += `\n\n📖 Related verse: "${verse.verse}" — ${verse.reference}`;
     (await db.query('INSERT INTO ai_chat_log (member_id, question, answer) VALUES (?, ?, ?)', [req.user.id, question, answer]))[0];
     res.json({ answer });
+});
+
+router.get('/ai-chat-log', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const logs = (await db.query(`
+            SELECT l.*, m.name as member_name 
+            FROM ai_chat_log l 
+            LEFT JOIN members m ON l.member_id = m.id 
+            ORDER BY l.created_at DESC
+        `))[0];
+        res.json(logs);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
 // ─── Family Connections ─────────────────────────────────────
@@ -893,16 +1016,20 @@ router.post('/youth/announcements', authenticateToken, requireAdmin, async (req,
 
 // ─── Admin Stats ────────────────────────────────────────────────────────────────────────────────────
 router.get('/admin/stats', authenticateToken, requireAdmin, async (req, res) => {
-    const stats = {
-        members: (await db.query("SELECT COUNT(*) as c FROM members WHERE status = 'approved'", []))[0][0].c,
-        pending_members: (await db.query("SELECT COUNT(*) as c FROM members WHERE status = 'pending'", []))[0][0].c,
-        prayer_requests: (await db.query('SELECT COUNT(*) as c FROM prayer_requests', []))[0][0].c,
-        answered_prayers: (await db.query('SELECT COUNT(*) as c FROM prayer_requests WHERE is_answered = 1', []))[0][0].c,
-        events: (await db.query('SELECT COUNT(*) as c FROM events', []))[0][0].c,
-        courses: (await db.query('SELECT COUNT(*) as c FROM courses', []))[0][0].c,
-        volunteers: (await db.query('SELECT COUNT(*) as c FROM volunteer_signups', []))[0][0].c,
-    };
-    res.json(stats);
+    try {
+        const stats = {
+            members: (await db.query("SELECT COUNT(*) as c FROM members WHERE status = 'approved'", []))[0][0].c,
+            pending_members: (await db.query("SELECT COUNT(*) as c FROM members WHERE status = 'pending'", []))[0][0].c,
+            prayer_requests: (await db.query('SELECT COUNT(*) as c FROM prayer_requests', []))[0][0].c,
+            answered_prayers: (await db.query('SELECT COUNT(*) as c FROM prayer_requests WHERE is_answered = 1', []))[0][0].c,
+            events: (await db.query('SELECT COUNT(*) as c FROM events', []))[0][0].c,
+            ministries: (await db.query('SELECT COUNT(*) as c FROM ministry_groups', []))[0][0].c,
+            volunteers: (await db.query('SELECT COUNT(*) as c FROM volunteer_signups', []))[0][0].c,
+        };
+        res.json(stats);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
 // ─── Tamil content filter helper ───────────────────────
@@ -1137,14 +1264,78 @@ router.post('/family/:id/candle/burn', authenticateToken, async (req, res) => {
 
 // Admin global family report
 router.get('/family/report/candles', authenticateToken, requireAdmin, async (req, res) => {
-    const report = (await db.query(`
-        SELECT c.family_id, c.candles_completed, c.prayer_hours, c.family_streak, f.family_name 
-        FROM family_candles c
-        JOIN family_connections f ON c.family_id = f.id
-        ORDER BY c.candles_completed DESC, c.prayer_hours DESC
-    `, []))[0];
-    res.json(report);
+    try {
+        const report = (await db.query(`
+            SELECT f.id as family_id, COALESCE(c.candles_completed, 0) as candles_completed, COALESCE(c.prayer_hours, 0.0) as prayer_hours, COALESCE(c.family_streak, 0) as family_streak, f.family_name 
+            FROM family_connections f
+            LEFT JOIN family_candles c ON c.family_id = f.id
+            ORDER BY candles_completed DESC, prayer_hours DESC
+        `, []))[0];
+        res.json(report);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
+
+// Admin deletes and missing options routers
+router.delete('/bulletins/:id', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        await db.query('DELETE FROM church_bulletins WHERE id = ?', [req.params.id]);
+        res.json({ message: 'Deleted.' });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+router.delete('/volunteers/:id', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        await db.query('DELETE FROM volunteer_signups WHERE opportunity_id = ?', [req.params.id]);
+        await db.query('DELETE FROM volunteer_opportunities WHERE id = ?', [req.params.id]);
+        res.json({ message: 'Deleted.' });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+router.delete('/ministry-groups/:id', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        await db.query('DELETE FROM ministry_members WHERE group_id = ?', [req.params.id]);
+        await db.query('DELETE FROM ministry_groups WHERE id = ?', [req.params.id]);
+        res.json({ message: 'Deleted.' });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+router.delete('/youth-corner/:id', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        await db.query('DELETE FROM youth_corner WHERE id = ?', [req.params.id]);
+        res.json({ message: 'Deleted.' });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+router.delete('/parenting/:id', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        await db.query('DELETE FROM parenting_resources WHERE id = ?', [req.params.id]);
+        res.json({ message: 'Deleted.' });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+router.delete('/song-requests/:id', authenticateToken, async (req, res) => {
+    try {
+        if (req.user.role === 'admin') {
+            await db.query('DELETE FROM song_requests WHERE id = ?', [req.params.id]);
+        } else {
+            await db.query('DELETE FROM song_requests WHERE id = ? AND member_id = ?', [req.params.id, req.user.id]);
+        }
+        res.json({ message: 'Deleted.' });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+router.delete('/prayer-calendar/:id', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        await db.query('DELETE FROM prayer_calendar WHERE id = ?', [req.params.id]);
+        res.json({ message: 'Deleted.' });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+router.delete('/ministry-groups/:id', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        await db.query('DELETE FROM ministry_members WHERE group_id = ?', [req.params.id]);
+        await db.query('DELETE FROM ministry_groups WHERE id = ?', [req.params.id]);
+        res.json({ message: 'Deleted.' });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // Analytics and Tracking
 router.get('/admin/analytics', authenticateToken, async (req, res) => {
     try {
@@ -1178,6 +1369,30 @@ router.post('/event-galleries/media/:id/like', authenticateToken, async (req, re
             [req.user.id, 'event_gallery', req.params.id]);
         res.json({ success: true });
     } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─── Church Info Extended ────────────────────────────
+router.get('/church-info/:key', authenticateToken, async (req, res) => {
+    try {
+        const info = (await db.query('SELECT * FROM church_info WHERE info_key = ?', [req.params.key]))[0][0];
+        if (!info) return res.status(404).json({ error: 'Info not found.' });
+        res.json(info);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+router.post('/church-info/:key', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { value, value_tamil } = req.body;
+        await db.query(
+            'INSERT INTO church_info (info_key, info_value, info_value_tamil) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE info_value = ?, info_value_tamil = ?',
+            [req.params.key, value || '', value_tamil || '', value || '', value_tamil || '']
+        );
+        res.json({ success: true, message: 'Church info updated successfully.' });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
 module.exports = router;

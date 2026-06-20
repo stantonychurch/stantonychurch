@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "b1dfc09d-a162-4e44-8678-8ec6fb9d82c0"
+      }
+    },
+    "android": {
+      "package": "com.yeswanthraj_003.christiandevotionalapp"
+    }
+  }
+}

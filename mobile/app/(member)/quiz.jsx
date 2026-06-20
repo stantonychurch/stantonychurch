@@ -72,11 +72,19 @@ export default function QuizScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <View style={[styles.header, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: Spacing.md, backgroundColor: Colors.dark2, borderBottomWidth: 1, borderBottomColor: Colors.glassBorder }]}>
+        <TouchableOpacity onPress={toggleDrawer} style={styles.menuBtn}>
+          <Text style={{ fontSize: 24, color: Colors.gold, fontWeight: 'bold' }}>☰</Text>
+        </TouchableOpacity>
+        <View style={{ flex: 1, alignItems: 'center' }}>
+          <Text style={{ fontSize: 20, color: Colors.text, fontWeight: '700' }}>{t('bible_quiz')}</Text>
+        </View>
+        <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }}>
+          <Text style={{ fontSize: 16, color: Colors.gold }}>🔙 {t('back') || 'Back'}</Text>
+        </TouchableOpacity>
+      </View>
       {gameState === 'start' && (
         <View style={styles.container}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Text style={styles.backText}>{t('back_to_church')}</Text>
-          </TouchableOpacity>
           <Text style={styles.icon}>🧠</Text>
           <Text style={styles.title}>{t('bible_quiz')}</Text>
           <Text style={styles.subtitle}>{t('test_knowledge')}</Text>

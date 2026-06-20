@@ -125,6 +125,12 @@ export default function MemberLoginScreen() {
             {loading ? <ActivityIndicator color={Colors.white} /> :
               <Text style={styles.submitText}>{tab === 'login' ? 'Login' : 'Create Account'}</Text>}
           </TouchableOpacity>
+
+          {loading && (
+            <Text style={{ color: Colors.gold, fontSize: 12, textAlign: 'center', marginTop: 12, fontStyle: 'italic', paddingHorizontal: 10 }}>
+              Waking up parish server (Cold start can take 30-45 seconds). Please wait...
+            </Text>
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

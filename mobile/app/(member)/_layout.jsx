@@ -1,10 +1,11 @@
 import { Stack, useRouter, usePathname } from 'expo-router';
 import { useState, createContext, useContext, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ScrollView, Animated, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ScrollView, Animated, useWindowDimensions, Platform, StatusBar, Modal, ActivityIndicator, Image } from 'react-native';
 import { Colors, Spacing, Radius } from '../../src/config/theme';
 import { useAuth } from '../../src/context/AuthContext';
 import { useLanguage } from '../../src/context/LanguageContext';
 import { LinearGradient } from 'expo-linear-gradient';
+import { getPlatform } from '../../src/services/api';
 
 export const DrawerContext = createContext(null);
 
@@ -14,6 +15,12 @@ export default function MemberLayout() {
   const { user, logout } = useAuth();
   const { lang, changeLanguage, t } = useLanguage();
   const pathname = usePathname();
+
+  // About Modal state
+  const [showAboutModal, setShowAboutModal] = useState(false);
+  const [loadingAbout, setLoadingAbout] = useState(false);
+  const [aboutInfo, setAboutInfo] = useState({ value: '', value_tamil: '' });
+  const [priestInfo, setPriestInfo] = useState({ value: '', value_tamil: '' });
 
   // Get dynamic window dimensions
   const { width } = useWindowDimensions();
@@ -64,34 +71,70 @@ export default function MemberLayout() {
 
   const toggleDrawer = () => setIsOpen(prev => !prev);
 
+  const fetchAboutInfo = async () => {
+    setLoadingAbout(true);
+    try {
+      const res = await getPlatform('/church-info/about').catch(()=>({data:{}}));
+      setAboutInfo({
+        value: res.data?.info_value || 'No information available currently.',
+        value_tamil: res.data?.info_value_tamil || 'தற்போது எந்த தகவலும் இல்லை.'
+      });
+      const res2 = await getPlatform('/church-info/priest').catch(()=>({data:{}}));
+      setPriestInfo({
+        value: res2.data?.info_value || '',
+        value_tamil: res2.data?.info_value_tamil || ''
+      });
+    } catch(e){
+      console.log("Error loading about info", e);
+    } finally {
+      setLoadingAbout(false);
+    }
+  };
+
   const navigateTo = async (path) => {
     setIsOpen(false);
     if (path === 'logout') {
       await logout();
       router.replace('/');
+    } else if (path === 'about') {
+      await fetchAboutInfo();
+      setShowAboutModal(true);
     } else {
       router.push(path);
     }
   };
 
   const menuItems = [
-    { label: t('home'), icon: '🏠', path: '/(member)/home' },
-    { label: t('devotionals'), icon: '📖', path: '/(member)/devotional' },
-    { label: t('prayer_requests'), icon: '🙏', path: '/(member)/prayer' },
-    { label: t('events'), icon: '📅', path: '/(member)/events' },
-    { label: t('family_group'), icon: '👨‍👩‍👧', path: '/(member)/family' },
-    { label: t('youth_group'), icon: '🔥', path: '/(member)/youth' },
-    { label: t('worship_songs'), icon: '🎵', path: '/(member)/worship' },
-    { label: t('faith_journal'), icon: '📝', path: '/(member)/journal' },
-    { label: t('galleries'), icon: '🖼️', path: '/(member)/galleries' },
-    { label: t('videos_sermons'), icon: '🎬', path: '/(member)/videos' },
-    { label: t('quiz'), icon: '🧠', path: '/(member)/quiz' },
-    { label: t('church_menu'), icon: '☰', path: '/(member)/more' },
+    { label: lang === 'ta' ? 'திருச்சபை பற்றி' : 'About Church', icon: '⛪', path: 'about' },
+    { label: lang === 'ta' ? 'அறிவிப்பு' : 'Announcement', icon: '📢', path: '/(member)/home' },
+    { label: lang === 'ta' ? 'வேதாகம வாசிப்பு திட்டங்கள்' : 'Bible Reading Plans', icon: '📖', path: '/(member)/more?section=reading' },
+    { label: lang === 'ta' ? 'குழந்தைகள் கதைகள்' : 'Children Stories', icon: '🧸', path: '/(member)/more?section=stories' },
+    { label: lang === 'ta' ? 'தினசரி சவால்கள்' : 'Daily Challenges', icon: '🏆', path: '/(member)/more?section=challenges' },
+    { label: lang === 'ta' ? 'நிகழ்வுகள்' : 'Events', icon: '📅', path: '/(member)/events' },
+    { label: lang === 'ta' ? 'விசுவாச குறிப்பேடு' : 'Faith Journal', icon: '📝', path: '/(member)/journal' },
+    { label: lang === 'ta' ? 'குடும்ப குழு' : 'Family Group', icon: '👨‍👩‍👧', path: '/(member)/family' },
+    { label: lang === 'ta' ? 'புகைப்படத் தொகுப்புகள்' : 'Galleries', icon: '🖼️', path: '/(member)/galleries' },
+    { label: lang === 'ta' ? 'முகப்பு' : 'Home', icon: '🏠', path: '/(member)/home' },
+    { label: lang === 'ta' ? 'ஊழிய குழு' : 'Ministry Group', icon: '⛪', path: '/(member)/more?section=ministries' },
+    { label: lang === 'ta' ? 'சான்றுகள்' : 'Praise Testimonies', icon: '🙌', path: '/(member)/more?section=testimonies' },
+    { label: lang === 'ta' ? 'ஜெப நாட்காட்டி' : 'Prayer Calendar', icon: '📅', path: '/(member)/more?section=prayer_calendar' },
+    { label: lang === 'ta' ? 'ஜெப சுவர்' : 'Prayer Wall', icon: '🙏', path: '/(member)/prayer' },
+    { label: lang === 'ta' ? 'ஜெபங்கள் மற்றும் தியானங்கள்' : 'Prayers and Devotions', icon: '📿', path: '/(member)/devotional' },
+    { label: lang === 'ta' ? 'வினாடி வினா' : 'Quiz', icon: '🧠', path: '/(member)/quiz' },
+    { label: lang === 'ta' ? 'வசனம் மனப்பாடம்' : 'Scripture Memorization', icon: '💡', path: '/(member)/more?section=memorization' },
+    { label: lang === 'ta' ? 'ஆராதனை நேரங்கள்' : 'Service Schedule', icon: '⏰', path: '/(member)/more?section=services' },
+    { label: lang === 'ta' ? 'பாடல் கோரிக்கைகள்' : 'Song Request', icon: '🎵', path: '/(member)/more?section=song_requests' },
+    { label: lang === 'ta' ? 'இன்றைய வசனம்' : 'Today Verse', icon: '📜', path: '/(member)/home' },
+    { label: lang === 'ta' ? 'வீடியோக்கள் மற்றும் பிரசங்கங்கள்' : 'Videos and Sermons', icon: '🎬', path: '/(member)/videos' },
+    { label: lang === 'ta' ? 'தன்னார்வ பணிகள்' : 'Volunteering and Duties', icon: '🤝', path: '/(member)/more?section=volunteering' },
+    { label: lang === 'ta' ? 'வாராந்திர அறிவிப்புகள்' : 'Weekly Bulletins', icon: '📰', path: '/(member)/more?section=bulletins' },
+    { label: lang === 'ta' ? 'ஆராதனை & காயர்' : 'Worship and Choir Sheets', icon: '🎼', path: '/(member)/more?section=playlists_choir' },
+    { label: lang === 'ta' ? 'இளைஞர் குழு' : 'Youth Group', icon: '🔥', path: '/(member)/youth' }
   ];
 
   return (
     <DrawerContext.Provider value={{ toggleDrawer }}>
-      <View style={{ flex: 1, backgroundColor: Colors.dark }}>
+      <View style={{ flex: 1, backgroundColor: Colors.dark, paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 }}>
         <Stack screenOptions={{ headerShown: false }} />
 
         {/* Drawer Overlay */}
@@ -180,6 +223,74 @@ export default function MemberLayout() {
             </TouchableOpacity>
           </View>
         </Animated.View>
+
+        {/* About Modal */}
+        <Modal
+          visible={showAboutModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowAboutModal(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>{t('about')}</Text>
+              
+              {loadingAbout ? (
+                <ActivityIndicator color={Colors.gold} style={{ marginVertical: 30 }} />
+              ) : (
+                <ScrollView contentContainerStyle={styles.modalScroll} showsVerticalScrollIndicator={false}>
+                  <Image 
+                    source={require('../../assets/church_image.jpg')} 
+                    style={styles.aboutChurchImage} 
+                    resizeMode="cover"
+                  />
+                  
+                  <Text style={styles.churchDescription}>
+                    {lang === 'ta' ? aboutInfo.value_tamil : aboutInfo.value}
+                  </Text>
+                  
+                    <View style={styles.priestCard}>
+                      <Image 
+                        source={require('../../assets/priest_image.jpeg')} 
+                        style={styles.priestImageCircle} 
+                        resizeMode="cover"
+                      />
+                      <View style={styles.priestDetails}>
+                        <Text style={styles.priestTitle}>
+                          {lang === 'ta' ? 'பங்குத் தந்தை' : 'Parish Priest'}
+                        </Text>
+                        <Text style={styles.priestName}>
+                          {lang === 'ta' ? 'அருள்திரு பிலிப் எஸ்.' : 'Rev. Fr. Philip S'}
+                        </Text>
+                        <Text style={styles.priestAddress}>
+                          {lang === 'ta' ? priestInfo.value_tamil : priestInfo.value}
+                        </Text>
+                      </View>
+                    </View>
+                  
+                  <View style={styles.contactRow}>
+                    <Text style={styles.contactHeader}>📍 {t('location')}</Text>
+                    <Text style={styles.contactVal}>8W3P+JM7, near GH, Mahadevapuram, Mettupalayam, Tamil Nadu 641301</Text>
+                  </View>
+                  
+                  <View style={styles.contactRow}>
+                    <Text style={styles.contactHeader}>📞 {t('contact')}</Text>
+                    <Text style={styles.contactVal}>+91 9952126090</Text>
+                  </View>
+                  
+                  <Text style={styles.versionText}>v1.2.0 • Powered by parish community</Text>
+                </ScrollView>
+              )}
+              
+              <TouchableOpacity 
+                style={styles.closeModalBtn} 
+                onPress={() => setShowAboutModal(false)}
+              >
+                <Text style={styles.closeModalBtnText}>{t('cancel')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </View>
     </DrawerContext.Provider>
   );
@@ -355,5 +466,147 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     color: 'rgba(255, 255, 255, 0.85)',
+  },
+
+  // About Modal Styles
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.md,
+  },
+  modalContent: {
+    width: '90%',
+    backgroundColor: '#151c30',
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    padding: Spacing.lg,
+    maxHeight: '80%',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: Colors.gold,
+    textAlign: 'center',
+    marginBottom: Spacing.md,
+  },
+  modalScroll: {
+    paddingBottom: 15,
+  },
+  churchDescription: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.9)',
+    lineHeight: 22,
+    textAlign: 'center',
+    marginBottom: Spacing.md,
+  },
+  patronCard: {
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: Radius.sm,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+    marginBottom: Spacing.md,
+  },
+  patronTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.gold,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  patronName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#ffffff',
+    marginTop: 4,
+  },
+  patronInfo: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.6)',
+    marginTop: 4,
+    lineHeight: 18,
+  },
+  contactRow: {
+    marginBottom: 10,
+  },
+  contactHeader: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.4)',
+    textTransform: 'uppercase',
+  },
+  contactVal: {
+    fontSize: 14,
+    color: '#ffffff',
+    marginTop: 2,
+  },
+  versionText: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.3)',
+    textAlign: 'center',
+    marginTop: 15,
+  },
+  closeModalBtn: {
+    backgroundColor: Colors.gold,
+    paddingVertical: 12,
+    borderRadius: Radius.sm,
+    alignItems: 'center',
+    marginTop: Spacing.md,
+  },
+  closeModalBtnText: {
+    color: '#000000',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  aboutChurchImage: {
+    width: '100%',
+    height: 220,
+    borderRadius: Radius.md,
+    marginBottom: Spacing.lg,
+    backgroundColor: 'rgba(255,255,255,0.02)',
+  },
+  priestCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: Radius.sm,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+    marginTop: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  priestImageCircle: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    borderWidth: 2,
+    borderColor: Colors.gold,
+  },
+  priestDetails: {
+    flex: 1,
+    marginLeft: 15,
+  },
+  priestTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.gold,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  priestName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#ffffff',
+    marginTop: 2,
+    marginBottom: 4,
+  },
+  priestAddress: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.7)',
+    lineHeight: 16,
   },
 });

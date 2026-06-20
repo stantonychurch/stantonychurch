@@ -1,5 +1,6 @@
 import { useEffect, useState, useContext } from 'react';
 import { View, Text, ScrollView, StyleSheet, SafeAreaView, RefreshControl, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useAuth } from '../../src/context/AuthContext';
 import { getDevotionals } from '../../src/services/api';
 import { Colors, Spacing, Radius } from '../../src/config/theme';
@@ -9,6 +10,7 @@ import { useLanguage } from '../../src/context/LanguageContext';
 export default function DevotionalScreen() {
   const { user } = useAuth();
   const { toggleDrawer } = useContext(DrawerContext);
+  const router = useRouter();
   const { t, lang } = useLanguage();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -52,14 +54,17 @@ export default function DevotionalScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={[styles.header, { flexDirection: 'row', alignItems: 'center', gap: 10 }]}>
+      <View style={[styles.header, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
         <TouchableOpacity onPress={toggleDrawer} style={styles.menuBtn}>
-          <Text style={styles.menuBtnText}>☰</Text>
+          <Text style={{ fontSize: 24, color: Colors.gold, fontWeight: 'bold' }}>☰</Text>
         </TouchableOpacity>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, alignItems: 'center' }}>
           <Text style={styles.title}>{t('devotionals_title')}</Text>
           <Text style={styles.subtitle}>{t('devotionals_subtitle')}</Text>
         </View>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtnSmall}>
+          <Text style={{ fontSize: 16, color: Colors.gold }}>🔙 {t('back')}</Text>
+        </TouchableOpacity>
       </View>
       <ScrollView
         contentContainerStyle={styles.list}

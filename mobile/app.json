@@ -4,20 +4,23 @@
     "slug": "st-antony-church",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/icon.jpg",
     "userInterfaceStyle": "dark",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/splash.jpg",
       "resizeMode": "contain",
       "backgroundColor": "#1a1209"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.stantony.church"
+      "bundleIdentifier": "com.stantony.church",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/adaptive-icon.jpg",
         "backgroundColor": "#1a1209"
       },
       "package": "com.stantony.church",
@@ -46,9 +49,8 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "dc51d9b4-ed5b-4b4d-9670-64d104b958a4"
+        "projectId": "2a1f9a39-b0a8-4c9c-becc-6c96e12ebed8"
       }
-    },
-    "owner": "yeswanthraj_003"
+    }
   }
 }

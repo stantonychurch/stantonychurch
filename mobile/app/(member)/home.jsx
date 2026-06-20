@@ -1,24 +1,25 @@
 import { useEffect, useState, useContext } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, SafeAreaView, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, SafeAreaView, RefreshControl, Platform, StatusBar, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../src/context/AuthContext';
 import { useLanguage } from '../../src/context/LanguageContext';
-import { getVerses, getEvents, getAnnouncements, getDevotionals } from '../../src/services/api';
+import { getVerses, getEvents, getAnnouncements, getPlatform } from '../../src/services/api';
 import { Colors, Spacing, Radius } from '../../src/config/theme';
 import { DrawerContext } from './_layout';
 
 export default function HomeScreen() {
   const { user, logout } = useAuth();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const router = useRouter();
   const { toggleDrawer } = useContext(DrawerContext);
   const [verse, setVerse] = useState(null);
   const [events, setEvents] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
-  const [devotionals, setDevotionals] = useState([]);
+  const [prayers, setPrayers] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [nextEventCountdown, setNextEventCountdown] = useState(null);
   const [countdownText, setCountdownText] = useState('');
+  const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
 
   async function handleLogout() {
     await logout();
@@ -32,8 +33,8 @@ export default function HomeScreen() {
 
   async function loadData() {
     try {
-      const [v, e, a, d] = await Promise.allSettled([
-        getVerses(), getEvents(), getAnnouncements(), getDevotionals()
+      const [v, e, a, p] = await Promise.allSettled([
+        getVerses(), getEvents(), getAnnouncements(), getPlatform('/prayer-calendar')
       ]);
       if (v.status === 'fulfilled' && v.value.data?.length) setVerse(v.value.data[0]);
       if (e.status === 'fulfilled') {
@@ -43,7 +44,7 @@ export default function HomeScreen() {
         if (upcoming.length > 0) setNextEventCountdown(upcoming[0]);
       }
       if (a.status === 'fulfilled') setAnnouncements(a.value.data?.slice(0, 3) || []);
-      if (d.status === 'fulfilled') setDevotionals(d.value.data?.slice(0, 2) || []);
+      if (p.status === 'fulfilled') setPrayers(p.value.data || []);
     } catch (_) {}
   }
 
@@ -77,7 +78,6 @@ export default function HomeScreen() {
     setRefreshing(false);
   }
 
-  const lang = user?.language || 'en';
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -107,15 +107,7 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.gold} />}
       >
-        {/* Next Event Countdown */}
-        {nextEventCountdown && (
-          <View style={styles.countdownCard}>
-            <Text style={styles.countdownLabel}>⏳ {t('next_event')}: {nextEventCountdown.title.toUpperCase()}</Text>
-            <Text style={styles.countdownValue}>{countdownText}</Text>
-          </View>
-        )}
-
-        {/* Today's Verse */}
+        {/* 1. Today's Verse */}
         {verse && (
           <View style={styles.verseCard}>
             <Text style={styles.verseCardLabel}>📜 {t('todays_verse')}</Text>
@@ -126,46 +118,14 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* Quick Actions */}
-        <Text style={styles.sectionLabel}>{t('quick_access')}</Text>
-        <View style={styles.quickGrid}>
-          {[
-            { label: t('devotionals'), icon: '📖', route: '/(member)/devotional' },
-            { label: t('prayer_wall'), icon: '🙏', route: '/(member)/prayer' },
-            { label: t('videos_sermons'), icon: '🎬', route: '/(member)/videos' },
-            { label: t('worship_songs'), icon: '🎵', route: '/(member)/worship' },
-            { label: t('galleries'), icon: '🖼️', route: '/(member)/galleries' },
-            { label: t('family_group'), icon: '👨‍👩‍👧', route: '/(member)/family' },
-            { label: t('youth_group'), icon: '🔥', route: '/(member)/youth' },
-            { label: t('faith_journal'), icon: '📝', route: '/(member)/journal' },
-          ].map((item, index) => (
-            <TouchableOpacity key={index} style={styles.quickCard} onPress={() => router.push(item.route)}>
-              <Text style={styles.quickIcon}>{item.icon}</Text>
-              <Text style={styles.quickLabel}>{item.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Announcements */}
-        {announcements.length > 0 && (
-          <>
-            <Text style={styles.sectionLabel}>📢 {t('announcements')}</Text>
-            {announcements.map(a => (
-              <View key={a.id} style={[styles.announceCard, !!a.is_emergency && styles.emergencyCard]}>
-                {!!a.is_emergency && <Text style={styles.emergencyBadge}>🚨 {t('emergency')}</Text>}
-                <Text style={styles.announceTitle}>
-                  {lang === 'ta' && a.title_tamil ? a.title_tamil : a.title}
-                </Text>
-                <Text style={styles.announceContent} numberOfLines={2}>
-                  {lang === 'ta' && a.content_tamil ? a.content_tamil : a.content}
-                </Text>
-              </View>
-            ))}
-          </>
+        {/* 2. Next Event Countdown & Upcoming Events */}
+        {nextEventCountdown && (
+          <View style={styles.countdownCard}>
+            <Text style={styles.countdownLabel}>⏳ {t('next_event')}: {nextEventCountdown.title.toUpperCase()}</Text>
+            <Text style={styles.countdownValue}>{countdownText}</Text>
+          </View>
         )}
-
-        {/* Upcoming Events */}
-        {events.length > 0 && (
+        {events.length > 0 ? (
           <>
             <View style={styles.sectionRow}>
               <Text style={styles.sectionLabel}>📅 UPCOMING EVENTS</Text>
@@ -190,36 +150,134 @@ export default function HomeScreen() {
               );
             })}
           </>
-        )}
+        ) : null}
 
-        {/* Latest Devotionals */}
-        {devotionals.length > 0 && (
+        {/* 3. Announcements */}
+        {announcements.length > 0 ? (
           <>
-            <View style={styles.sectionRow}>
-              <Text style={styles.sectionLabel}>✝️ DEVOTIONALS</Text>
-              <TouchableOpacity onPress={() => router.push('/(member)/devotional')}>
-                <Text style={styles.seeAll}>See all →</Text>
+            <Text style={styles.sectionLabel}>📢 {t('announcements')}</Text>
+            {announcements.map(a => (
+              <TouchableOpacity 
+                key={a.id} 
+                style={[styles.announceCard, !!a.is_emergency && styles.emergencyCard]}
+                onPress={() => setSelectedAnnouncement(a)}
+                activeOpacity={0.7}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <View style={{ flex: 1 }}>
+                    {!!a.is_emergency && <Text style={styles.emergencyBadge}>🚨 {t('emergency')}</Text>}
+                    <Text style={styles.announceTitle}>
+                      {lang === 'ta' && a.title_tamil ? a.title_tamil : a.title}
+                    </Text>
+                  </View>
+                  <Text style={{ color: Colors.gold, fontSize: 16, paddingLeft: 10 }}>→</Text>
+                </View>
               </TouchableOpacity>
-            </View>
-            {devotionals.map(d => (
-              <View key={d.id} style={styles.devCard}>
-                <Text style={styles.devTitle}>{lang === 'ta' && d.title_tamil ? d.title_tamil : d.title}</Text>
-                <Text style={styles.devContent} numberOfLines={3}>
-                  {lang === 'ta' && d.content_tamil ? d.content_tamil : d.content}
-                </Text>
-              </View>
             ))}
           </>
-        )}
+        ) : null}
+
+        {/* 4. Prayer Calendar Component */}
+        <View style={styles.sectionRow}>
+          <Text style={styles.sectionLabel}>🗓️ PRAYER CALENDAR</Text>
+          <TouchableOpacity onPress={() => router.push('/(member)/more?section=prayer_calendar')}>
+            <Text style={styles.seeAll}>See all →</Text>
+          </TouchableOpacity>
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 15, paddingBottom: 15 }}>
+          {prayers.filter(p => new Date(p.event_date) >= new Date(new Date().setDate(new Date().getDate()-1))).slice(0, 5).map((p, idx) => {
+            const date = new Date(p.event_date);
+            return (
+              <View key={p.id || idx} style={styles.prayerCalBox}>
+                <Text style={styles.prayerCalDay}>{date.toLocaleString('default', { weekday: 'short' }).toUpperCase()}</Text>
+                <Text style={styles.prayerCalDate}>{date.getDate()}</Text>
+                <Text style={styles.prayerCalTitle} numberOfLines={2}>{p.title}</Text>
+              </View>
+            );
+          })}
+          {prayers.length === 0 && (
+             <View style={[styles.prayerCalBox, { width: 200 }]}>
+                <Text style={{color: Colors.textMuted, fontStyle: 'italic', textAlign: 'center'}}>No upcoming prayer intentions</Text>
+             </View>
+          )}
+        </ScrollView>
+
+        {/* 5. Quick Access (Exactly 7 items) */}
+        <Text style={styles.sectionLabel}>{t('quick_access')}</Text>
+        <View style={styles.quickGrid}>
+          {[
+            { label: lang === 'ta' ? 'தினசரி சவால்கள்' : 'Daily Challenges', icon: '🏆', route: '/(member)/more?section=challenges' },
+            { label: lang === 'ta' ? 'ஊழிய குழு' : 'Ministry Group', icon: '⛪', route: '/(member)/more?section=ministries' },
+            { label: lang === 'ta' ? 'ஜெப நாட்காட்டி' : 'Prayer Calendar', icon: '🗓️', route: '/(member)/more?section=prayer_calendar' },
+            { label: lang === 'ta' ? 'ஜெபங்கள் மற்றும் தியானங்கள்' : 'Prayers & Devotions', icon: '📿', route: '/(member)/devotional' },
+            { label: lang === 'ta' ? 'வினாடி வினா' : 'Quiz', icon: '🧠', route: '/(member)/quiz' },
+            { label: lang === 'ta' ? 'வசனம் மனப்பாடம்' : 'Scripture Memory', icon: '💡', route: '/(member)/more?section=memorization' },
+            { label: lang === 'ta' ? 'ஆராதனை நேரங்கள்' : 'Service Schedule', icon: '⏰', route: '/(member)/more?section=services' },
+          ].map((item, index) => (
+            <TouchableOpacity key={index} style={styles.quickCard} onPress={() => router.push(item.route)}>
+              <Text style={styles.quickIcon}>{item.icon}</Text>
+              <Text style={styles.quickLabel}>{item.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
         <View style={{ height: 20 }} />
       </ScrollView>
+
+      {/* Announcement Detail Modal */}
+      <Modal
+        visible={!!selectedAnnouncement}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelectedAnnouncement(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalSectionTitle}>📢 {t('announcements')}</Text>
+            
+            {selectedAnnouncement && (
+              <ScrollView contentContainerStyle={{ paddingBottom: 15 }} showsVerticalScrollIndicator={false}>
+                {!!selectedAnnouncement.is_emergency && (
+                  <Text style={[styles.emergencyBadge, { alignSelf: 'flex-start', marginBottom: 10 }]}>
+                    🚨 {t('emergency')}
+                  </Text>
+                )}
+                
+                <Text style={styles.modalDetailTitle}>
+                  {lang === 'ta' && selectedAnnouncement.title_tamil ? selectedAnnouncement.title_tamil : selectedAnnouncement.title}
+                </Text>
+                
+                {selectedAnnouncement.created_at && (
+                  <Text style={styles.announceDate}>
+                    {new Date(selectedAnnouncement.created_at).toLocaleDateString(undefined, {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                  </Text>
+                )}
+                
+                <Text style={styles.modalDetailContent}>
+                  {lang === 'ta' && selectedAnnouncement.content_tamil ? selectedAnnouncement.content_tamil : selectedAnnouncement.content}
+                </Text>
+              </ScrollView>
+            )}
+            
+            <TouchableOpacity 
+              style={styles.closeBtnModal} 
+              onPress={() => setSelectedAnnouncement(null)}
+            >
+              <Text style={styles.closeBtnTextModal}>{t('cancel')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.dark },
+  safe: { flex: 1, backgroundColor: Colors.dark, paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, backgroundColor: Colors.dark2, borderBottomWidth: 1, borderBottomColor: Colors.glassBorder },
   menuBtn: { padding: 4, marginRight: 2 },
   menuBtnText: { fontSize: 24, color: Colors.gold, fontWeight: 'bold' },
@@ -259,4 +317,88 @@ const styles = StyleSheet.create({
   devCard: { backgroundColor: Colors.darkCard, borderWidth: 1, borderColor: Colors.glassBorder, borderRadius: Radius.md, padding: Spacing.md, marginBottom: 10 },
   devTitle: { fontSize: 15, fontWeight: '700', color: Colors.text, marginBottom: 6 },
   devContent: { fontSize: 13, color: Colors.textMuted, lineHeight: 20 },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.md,
+  },
+  modalContent: {
+    width: '90%',
+    backgroundColor: '#151c30',
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    padding: Spacing.lg,
+    maxHeight: '80%',
+  },
+  modalSectionTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.gold,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    marginBottom: Spacing.md,
+    textAlign: 'center',
+  },
+  modalDetailTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#ffffff',
+    marginBottom: 6,
+    lineHeight: 24,
+  },
+  modalDetailContent: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.9)',
+    lineHeight: 22,
+    marginTop: 10,
+  },
+  announceDate: {
+    fontSize: 11,
+    color: Colors.textMuted,
+    marginBottom: 8,
+  },
+  closeBtnModal: {
+    backgroundColor: Colors.gold,
+    paddingVertical: 12,
+    borderRadius: Radius.sm,
+    alignItems: 'center',
+    marginTop: Spacing.md,
+  },
+  closeBtnTextModal: {
+    color: '#000000',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  prayerCalBox: {
+    width: 120,
+    backgroundColor: Colors.darkCard,
+    borderWidth: 1,
+    borderColor: Colors.glassBorder,
+    borderRadius: Radius.md,
+    padding: Spacing.sm,
+    marginRight: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  prayerCalDay: {
+    fontSize: 12,
+    color: Colors.gold,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  prayerCalDate: {
+    fontSize: 24,
+    color: Colors.text,
+    fontWeight: '900',
+    marginBottom: 4,
+  },
+  prayerCalTitle: {
+    fontSize: 11,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    fontWeight: '600',
+  },
 });

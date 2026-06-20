@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>St. Antony's Church, Mettupalayam</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+
+    <!-- Parallax Background -->
+    <div class="parallax-bg"></div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <img src="{{ url_for('static', filename='img/logo.jpg') }}" alt="Church Logo" class="nav-logo">
+            <span>St. Antony's Church</span>
+        </div>
+        <ul class="nav-links">
+            <li><a href="#home">Home</a></li>
+            <li><a href="#about">About</a></li>
+            <li><a href="#mass-timings">Timings</a></li>
+            <li><a href="#priests">Priests</a></li>
+            <li><a href="#announcements">Events</a></li>
+            <li><a href="#contact">Contact</a></li>
+            <li><a href="/download_apk" class="nav-btn"><i class="fa-solid fa-download"></i> App</a></li>
+        </ul>
+    </nav>
+
+    <main class="content-wrapper">
+        
+        <!-- HOME SECTION -->
+        <section id="home" class="glass-section hero-section">
+            <img src="{{ url_for('static', filename='img/logo.jpg') }}" alt="St. Antony's Church Logo" class="hero-logo">
+            <h1 class="church-title">St. Antony's Church</h1>
+            <p class="subtitle">Wonder Worker St. Antony - Glory to God Alone</p>
+            <h2 class="welcome-text">Welcome to Our Parish Family</h2>
+            
+            <div class="hero-grid">
+                <div class="info-card">
+                    <i class="fa-regular fa-clock"></i>
+                    <h3>Service Timings</h3>
+                    <p>Sunday Mass: 6:30 AM & 8:15 AM</p>
+                    <p>Weekday Mass: 6:30 PM</p>
+                </div>
+                <div class="info-card">
+                    <i class="fa-solid fa-bullhorn"></i>
+                    <h3>Latest Announcements</h3>
+                    <p>Join us for the Annual Feast Celebration All are welcome!</p>
+                </div>
+            </div>
+            
+            <div class="hero-actions">
+                <a href="#contact" class="btn btn-outline">Contact Us</a>
+                <a href="/download_apk" class="btn btn-primary"><i class="fa-solid fa-mobile-screen"></i> Download Mobile App</a>
+            </div>
+        </section>
+
+        <!-- ABOUT US SECTION -->
+        <section id="about" class="glass-section">
+            <h2 class="section-title">About Us</h2>
+            
+            <div class="card">
+                <h3>Our History</h3>
+                <p>Mettupalayam is the gateway to the Nilgiri Hills and has a rich history connected to the development of Ooty and the Coimbatore Diocese.
+The first Catholic church in Mettupalayam was built by Fr. A.J. Langier in 1846, and a new St. Antony's Church was constructed by Fr. Petite in 1922.
+Mettupalayam became an independent parish in 1947, with several priests contributing to the growth of the church, schools, and community facilities.
+The parish played an important role in education through Gandhi Memorial School and other initiatives.
+A shrine and church dedicated to Our Lady of Velankanni were developed into a major pilgrimage center, attracting many devotees.
+The parish is also known for pioneering the "Anbiam" Basic Christian Communities, strengthening faith and unity among parishioners.</p>
+            </div>
+            
+            <div class="grid-2">
+                <div class="card">
+                    <h3>Mission & Vision</h3>
+                    <p>To spread the Word of God, Light of Christ, and Love of God to all people. To be a welcoming community of faith, serving those in need and growing together in spiritual maturity.</p>
+                </div>
+                <div class="card">
+                    <h3>Patron Saint</h3>
+                    <p>St. Antony, the Wonder Worker, is our beloved patron saint. He guides our parish with his miraculous intercessions and deep love for the poor and infant Jesus.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- MASS TIMINGS SECTION -->
+        <section id="mass-timings" class="glass-section">
+            <h2 class="section-title">Mass & Service Timings</h2>
+            <div class="grid-3">
+                <div class="card timing-card">
+                    <i class="fa-solid fa-sun text-gold"></i>
+                    <h3>Sunday Mass</h3>
+                    <ul>
+                        <li><strong>06:30 AM</strong></li>
+                        <li><strong>08:15 AM</strong></li>
+                    </ul>
+                </div>
+                <div class="card timing-card">
+                    <i class="fa-regular fa-calendar-days text-gold"></i>
+                    <h3>Weekday Mass</h3>
+                    <ul>
+                        <li><strong>Monday - Saturday:</strong> 06:15 AM</li>
+                        <li><strong>Tuesday:</strong> 11:30 AM (Spl)</li>
+                    </ul>
+                </div>
+                <div class="card timing-card">
+                    <i class="fa-solid fa-star text-gold"></i>
+                    <h3>Special Feasts</h3>
+                    <ul>
+                        <li><strong>Tuesday:</strong> 11:30 AM</li>
+                        <li><strong>Annual Feast:</strong> June 21</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- PRIEST SECTION -->
+        <section id="priests" class="glass-section">
+            <h2 class="section-title">Parish Priest</h2>
+            <div class="grid-2" style="align-items: center;">
+                <div class="holy-image-container" style="text-align: center;">
+                    <img src="{{ url_for('static', filename='img/mary_antony.jpg') }}" alt="Holy Mary and St. Antony" style="width: 100%; max-width: 400px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); border: 5px solid rgba(255,255,255,0.5);">
+                </div>
+                <div class="card profile-card" style="margin-bottom: 0;">
+                    <img src="{{ url_for('static', filename='img/priest.jpg') }}" alt="Parish Priest" class="profile-img">
+                    <h3>Rev. Fr. Philip S</h3>
+                    <p class="role" style="color: var(--copper); font-weight: bold;">Parish Priest</p>
+                    <p style="margin-top: 15px; font-size: 0.95rem; color: var(--text-color);">Dedicated to serving the community of Mettupalayam, guiding our spiritual journey, and fostering a loving family in Christ.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ANNOUNCEMENTS SECTION -->
+        <section id="announcements" class="glass-section">
+            <h2 class="section-title">Announcements & Events</h2>
+            <div class="grid-2">
+                <div class="card">
+                    <h3>Upcoming Events</h3>
+                    <ul class="event-list">
+                        <li><i class="fa-regular fa-calendar"></i> St Antony Fest (Sunday 11:30 AM)</li>
+                        <li><i class="fa-regular fa-calendar"></i> Sunday School Reopening</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>Feast Celebrations</h3>
+                    <p>Preparations for the St. Antony's Annual Feast are underway.</p>
+                </div>
+                <div class="card">
+                    <h3>Prayer Meetings</h3>
+                    <p>Anbiam (BCC) meetings will be held this Sunday at 7:00 PM in all respective zones.</p>
+                </div>
+                <div class="card">
+                    <h3>Youth Activities</h3>
+                    <p>Youth Group gathers every 2nd Sunday after the 9:00 AM Mass.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- CONTACT US SECTION -->
+        <section id="contact" class="glass-section">
+            <h2 class="section-title">Contact Us</h2>
+            <div class="grid-2">
+                <div class="card">
+                    <h3>Reach Out To Us</h3>
+                    <ul class="contact-list">
+                        <li><i class="fa-solid fa-location-dot"></i> <strong>Address:</strong> St. Antony's Church, Main Road, Mettupalayam P.O, Coimbatore- 641 301. <br></li>
+                        <li><i class="fa-solid fa-phone"></i> <strong>Phone:</strong> +91 9952126090</li>
+                        <li><i class="fa-solid fa-envelope"></i> <strong>Email:</strong> stantonychruchmpr@gmail.com</li>
+                        <li><i class="fa-brands fa-youtube"></i> <strong>YouTube:</strong> <a href="https://www.youtube.com/@WonderWorkerStAntony-MTP" class="text-gold">Watch Live Mass</a></li>
+                    </ul>
+                </div>
+                <div class="card p-0">
+                    <!-- Google Maps Iframe -->
+                    <iframe src="https://maps.google.com/maps?q=St.%20Antony's%20Church,%20Mahadevapuram,%20Mettupalayam,%20Coimbatore,%20Tamil%20Nadu&t=&z=15&ie=UTF8&iwloc=&output=embed" width="100%" height="300" style="border:0; border-radius: 12px;" allowfullscreen="" loading="lazy"></iframe>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2026 St. Antony's Church, Mettupalayam. All Rights Reserved.</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

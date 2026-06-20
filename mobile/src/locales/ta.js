@@ -13,7 +13,7 @@ export const ta = {
   quiz: 'வினாடி வினா',
   church_menu: 'திருச்சபை பட்டி',
   my_account: 'என் கணக்கு',
-  
+
   // Home
   good_morning: 'காலை வணக்கம்',
   good_afternoon: 'மதிய வணக்கம்',
@@ -27,20 +27,20 @@ export const ta = {
   upcoming_events: 'வரவிருக்கும் நிகழ்வுகள்',
   family_corner: 'குடும்ப பகுதி',
   youth_corner: 'இளைஞர் பகுதி',
-  
+
   // Devotional
   daily_devotional: 'தினசரி தியானம்',
   today: 'இன்று',
   read_full_devo: 'முழு தியானத்தை படிக்கவும்',
   mark_complete: 'முடிந்ததாக குறிக்கவும்',
   streak: 'நாள் தொடர்ச்சி!',
-  
+
   // Galleries
   back_to_galleries: '← தொகுப்புகளுக்கு திரும்புக',
   no_media: 'ஊடகங்கள் எதுவும் இல்லை.',
   post: 'பதிவிடு',
   add_comment: 'கருத்து சேர்க்க...',
-  
+
   // Youth Group
   join_youth: 'இளைஞர் குழுவில் சேரவும்',
   join_youth_desc: 'அணுகலைக் கோர திருச்சபை நிர்வாகி வழங்கிய அழைப்புக் குறியீட்டை உள்ளிடவும்.',
@@ -52,7 +52,7 @@ export const ta = {
   active_member: 'செயலில் உள்ள உறுப்பினர்',
   youth_announcements: 'இளைஞர் அறிவிப்புகள்',
   no_announcements: 'அறிவிப்புகள் எதுவும் இல்லை.',
-  
+
   // Family Group
   prayer_session: 'குடும்ப ஜெப நேரம்',
   start_prayer: 'ஜெபத்தை தொடங்கு',
@@ -62,7 +62,7 @@ export const ta = {
   family_wall: 'குடும்ப சுவர்',
   share_prayer: 'ஜெபத்தை அல்லது எண்ணத்தை பகிரவும்...',
   no_posts: 'பதிவுகள் எதுவும் இல்லை.',
-  
+
   // General
   loading: 'ஏற்றுகிறது...',
   loading_details: 'விவரங்களை ஏற்றுகிறது...',
@@ -86,7 +86,7 @@ export const ta = {
   no_devotionals: 'தியானங்கள் எதுவும் இல்லை.',
   prayer_requests_title: '🙏 ஜெப விண்ணப்பங்கள்',
   submit_and_pray: 'சமர்ப்பித்து மற்றவர்களுக்காக ஜெபிக்கவும்',
-  public_wall: 'பொது சுவர்',
+  public_wall: 'ஜெபம் சுவர்',
   my_prayers: 'என் ஜெபங்கள்',
   share_prayer_req: 'உங்கள் ஜெப விண்ணப்பத்தை பகிரவும்',
   write_prayer_req: 'உங்கள் ஜெப விண்ணப்பத்தை எழுதவும்...',
@@ -114,7 +114,7 @@ export const ta = {
   contemporary_tag: 'நவீன',
   english: 'English',
   tamil: 'தமிழ்',
-  no_songs: 'உங்கள் வடிப்பான்களுடன் எந்த பாடல்களும் பொருந்தவில்லை.',
+  no_songs: 'எந்த பாடல்களும் பொருந்தவில்லை.',
   by: 'பாடியவர்',
   no_lyrics: 'பாடல் வரிகள் கிடைக்கவில்லை.',
   grateful: 'நன்றியுடைய',
@@ -167,7 +167,7 @@ export const ta = {
   fasting: '🛐 உபவாச கண்காணிப்பு',
   fasting_desc: 'உங்கள் உபவாசம் மற்றும் ஜெப நோக்கங்களை கண்காணிக்கவும்',
   services: '⛪ ஆராதனை நேரங்கள்',
-  services_desc: 'சபை ஆராதனைகளின் நாட்கள் மற்றும் நேரங்கள்',
+  services_desc: 'தேவாலய நிகழ்வுகளின் நாட்கள் மற்றும் நேரங்கள் குறித்த விவரங்கள்',
   podcasts: '🎙️ பாட்காஸ்ட்கள் & ஆடியோ',
   podcasts_desc: 'ஊக்கமளிக்கும் ஆடியோ தியானங்களைக் கேட்கவும்',
   reading_plans: '📖 வாசிப்பு திட்டங்கள்',
@@ -219,7 +219,50 @@ export const ta = {
   start_family_prayer: 'குடும்ப ஜெபத்தை தொடங்கு 🕯️',
   family_feed: 'குடும்ப பதிவு',
   share_notes: 'குறிப்புகள், ஜெபக் குறிப்புகள் அல்லது மீடியா இணைப்புகளைப் பகிரவும்.',
-  share_something: 'உங்கள் குடும்பத்துடன் எதையாவது பகிரவும்...',
-  post: 'பதிவு செய்',
-  no_posts: 'இன்னும் பதிவுகள் இல்லை. முதலில் பகிர்ந்துகொள்ளுங்கள்!'
+  share_something: 'உங்கள் குடும்பத்துடன் ஏதாவது பகிர்ந்து கொள்ளுங்கள்...',
+  post: 'பதிவிடு',
+  no_posts: 'இன்னும் பதிவுகள் இல்லை. முதலில் பகிரவும்!',
+
+  // Elevated items & dynamic About section
+  about: 'திருச்சபை பற்றி',
+  stories: 'குழந்தைகள் கதைகள்',
+  testimonies: 'சான்றுகள்',
+  prayer_groups: 'ஜெப குழுக்கள்',
+  playlists_choir: 'ஆராதனை & காயர்',
+  challenges: 'தினசரி சவால்கள்',
+  memorization: 'வசனம் மனப்பாடம்',
+  ai_counselor: 'விசுவாச AI ஆலோசகர்',
+  ai_welcome: 'நல்வரவு! நான் உங்கள் ஆவிக்குரிய AI ஆலோசகர். கவலை, விசுவாசம், நம்பிக்கை, அன்பு, துக்கம், மன்னிப்பு அல்லது எந்தவொரு வேத வழிகாட்டுதலையும் பற்றி என்னிடம் கேளுங்கள்.',
+  bulletins: 'வாராந்திர அறிவிப்புகள்',
+  ministries: 'திருச்சபை ஊழியங்கள்',
+  volunteering: 'தன்னார்வ பணிகள்',
+  resources: 'கல்வி வளங்கள்',
+  prayer_calendar: 'ஜெப நாட்காட்டி',
+  song_requests: 'பாடல் கோரிக்கைகள்',
+  patron_saint: 'பாதுகாவலர் புனிதர்',
+  saint_antony: 'பதுவா நகர் புனித அந்தோனியார்',
+  location: 'இருப்பிடம்',
+  parish_sanctuary: 'முதன்மை ஆலயம்',
+  contact: 'தொடர்பு',
+  parish_office: 'பங்கு அலுவலகம்',
+  about_manager: 'திருச்சபை பற்றிய தகவல் மேலாளர்',
+  update_about: 'விவரத்தை புதுப்பிக்கவும்',
+  about_desc_en: 'ஆங்கில விளக்கம்',
+  about_desc_ta: 'தமிழ் விளக்கம்',
+  parenting: 'பெற்றோர் வளர்ப்பு',
+  prayers_devotions: 'ஜெபங்கள் & தியானங்கள்',
+  activity: 'செயல்பாடு',
+  ai_chat_logs: 'செயற்கை நுண்ணறிவு உரையாடல் பதிவுகள்',
+  approvals: 'ஒப்புதல்கள்',
+  audio: 'ஆடியோ',
+  bulletins_manager: 'அறிவிப்பு மேலாளர்',
+  members: 'உறுப்பினர்கள்',
+  ministries_manager: 'ஊழிய மேலாளர்',
+  overview: 'கண்ணோட்டம்',
+  prayers: 'ஜெபங்கள்',
+  resources_manager: 'வளங்கள் மேலாளர்',
+  settings: 'அமைப்புகள்',
+  verses: 'வசனங்கள்',
+  volunteer_manager: 'தன்னார்வ மேலாளர்',
+  worship: 'ஆராதனை'
 };

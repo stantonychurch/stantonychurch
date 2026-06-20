@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { DrawerContext } from './_layout';
 import { useLanguage } from '../../src/context/LanguageContext';
+import { useRouter } from 'expo-router';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Image, TextInput } from 'react-native';
 import { Colors, Spacing, Radius } from '../../src/config/theme';
 import apiClient from '../../src/services/api';
@@ -12,6 +13,7 @@ const SERVER_URL = API_BASE_URL.replace('/api', '');
 
 export default function GalleriesScreen() {
   const { toggleDrawer } = useContext(DrawerContext);
+  const router = useRouter();
   const { t } = useLanguage();
   const [galleries, setGalleries] = useState([]);
   const [selectedGallery, setSelectedGallery] = useState(null);
@@ -72,8 +74,14 @@ export default function GalleriesScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>{selectedGallery ? selectedGallery.title : t('event_galleries')}</Text>
+      <View style={[styles.header, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
+        <TouchableOpacity onPress={toggleDrawer} style={styles.menuBtn}>
+          <Text style={{ fontSize: 24, color: Colors.gold, fontWeight: 'bold' }}>☰</Text>
+        </TouchableOpacity>
+        <View style={{ flex: 1, alignItems: 'center' }}><Text style={styles.headerTitle}>{selectedGallery ? selectedGallery.title : t('event_galleries')}</Text></View>
+        <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }}>
+          <Text style={{ fontSize: 16, color: Colors.gold }}>🔙 {t('back') || 'Back'}</Text>
+        </TouchableOpacity>
       </View>
       <ScrollView contentContainerStyle={styles.scroll}>
         {selectedGallery ? (
